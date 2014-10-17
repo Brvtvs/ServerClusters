@@ -46,3 +46,7 @@ Synchronization is why central coordinating servers are often used. However, in 
 ServerClusters depends on the PubSub utility. It is proprietary (so is ServerClusters), but this is not for the general public anyways. I am just trying to document how it works.
 
 ServerClusters uses PubSub to send messages to connected servers. This messaging is what makes ServerClusters' P2P network tick! PubSub messaging is generally done via a redis instance, although this is open to change if PubSub changes.
+
+Currently, ServerClusters uses BungeeCord to send players. This also means that server ids need to be recognizable to BungeeCord.
+
+ServerClusters includes no user interface. It is a library to accomplish all of the things listed above, except for how the user actually triggers the behavior. This could be something as simple as a command, or else things like item menus, sign-clicking, holograms, etc. All would be easy to implement on top of ServerClusters very simple API.
