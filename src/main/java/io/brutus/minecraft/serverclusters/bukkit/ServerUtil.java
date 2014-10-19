@@ -9,6 +9,13 @@ import org.bukkit.Bukkit;
 import org.bukkit.entity.Player;
 import org.bukkit.plugin.java.JavaPlugin;
 
+/**
+ * Static methods to abstract some common, and most likely interchangeable, references to a
+ * Minecraft server implementation.
+ * <p>
+ * These are very likely to change if implementations change and are not at all inherent to a
+ * specific implementation. Keeping them separate simply enhances code reusability and adaptability.
+ */
 public class ServerUtil {
 
   private static JavaPlugin plugin;
