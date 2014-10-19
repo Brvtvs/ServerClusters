@@ -96,7 +96,7 @@ client-functions:
     #     enough for the number of players being sent. This causes servers to fill up as fast as 
     #     possible, which is a way to accomplish efficient matchmaking.
     # 2. 'loadbalancing' - puts the players in the server with the most number of open slots. This 
-    #     causes each server to be used roughly equally, sprading the load throughout the cluster. 
+    #     causes each server to be used roughly equally, spreading the load throughout the cluster. 
     # 3. 'random' - puts the players in any random server in the cluster that has enough slots. 
     server-selection:
     
