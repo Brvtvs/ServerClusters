@@ -7,6 +7,9 @@ import io.brutus.minecraft.serverclusters.protocol.Heartbeat;
 import io.brutus.minecraft.serverclusters.protocol.ShutdownNotification;
 import io.brutus.minecraft.serverclusters.selection.ServerSelectionMode;
 
+/**
+ * A store of information about connected servers, updated with heartbeat and shutdown messages.
+ */
 public interface NetworkStatus {
 
   /**
