@@ -18,7 +18,6 @@ import com.google.common.collect.Multimaps;
 import io.brutus.minecraft.serverclusters.NetworkStatus;
 import io.brutus.minecraft.serverclusters.ServerClustersConfig;
 import io.brutus.minecraft.serverclusters.protocol.Heartbeat;
-import io.brutus.minecraft.serverclusters.protocol.ShutdownNotification;
 import io.brutus.minecraft.serverclusters.selection.ServerSelectionMode;
 
 /**
@@ -62,21 +61,6 @@ public class NetworkCache implements NetworkStatus, ExpirationListener<String, S
     } else {
       status.updateOpenSlots(hb.getOpenSlots());
     }
-  }
-
-  @Override
-  public void onShutdown(ShutdownNotification sd) throws IllegalArgumentException {
-    if (sd == null) {
-      throw new IllegalArgumentException("shutdown notification cannot be null");
-    }
-
-    ServerStatus status = servers.get(sd.getServerId());
-    if (status == null) {
-      return;
-    }
-
-    servers.remove(status.getId());
-    clusters.remove(status.getClusterId(), status);
   }
 
   @Override

@@ -5,7 +5,6 @@ import java.util.Arrays;
 import io.brutus.minecraft.pubsub.PubSub;
 import io.brutus.minecraft.serverclusters.bukkit.ServerUtil;
 import io.brutus.minecraft.serverclusters.protocol.Heartbeat;
-import io.brutus.minecraft.serverclusters.protocol.ShutdownNotification;
 import io.brutus.networking.pubsubmessager.PubSubMessager;
 import io.brutus.networking.pubsubmessager.Subscriber;
 
@@ -32,7 +31,6 @@ public class HeartbeatMessager implements Subscriber {
 
   private final PubSubMessager messager;
   private final byte[] heartbeatChannel;
-  private final byte[] shutdownChannel;
   private final byte[] baseMessage;
 
   private volatile boolean alive;
@@ -51,9 +49,7 @@ public class HeartbeatMessager implements Subscriber {
     this.networkCache = networkStatus;
 
     heartbeatChannel = config.getHeartbeatChannel();
-    shutdownChannel = config.getShutdownChannel();
-    if (heartbeatChannel == null || heartbeatChannel.length < 1 || shutdownChannel == null
-        || shutdownChannel.length < 1) {
+    if (heartbeatChannel == null || heartbeatChannel.length < 1) {
       throw new IllegalArgumentException(
           "the configured heartbeat messaging channels cannot be null or empty");
     }
@@ -64,7 +60,6 @@ public class HeartbeatMessager implements Subscriber {
     }
 
     messager.subscribe(heartbeatChannel, this);
-    messager.subscribe(shutdownChannel, this);
 
 
     if (actAsServer) { // does things not necessary unless fulfilling other instances' requests.
@@ -83,33 +78,10 @@ public class HeartbeatMessager implements Subscriber {
     }
   }
 
-  /**
-   * Stops this server's heart, as it is known to connected servers. Stops this server from sending
-   * out heartbeats, and lets connected servers know that this server is no longer available.
-   * <p>
-   * This does not necessarily need to take place at shutdown, but it removes this server from being
-   * considered by connected servers until the next restart.
-   * <p>
-   * Does nothing if this is not currently sending heartbeats.
-   */
-  public void shutdown() {
-    if (!alive) {
-      return;
-    }
-    alive = false;
-
-    // TODO debug
-    System.out.println("[ServerClusters] Sending a shutdown message.");
-
-    messager.publish(shutdownChannel, ShutdownNotification.createMessage(thisServerId));
-  }
-
   @Override
   public void onMessage(byte[] channel, byte[] message) {
     if (Arrays.equals(channel, heartbeatChannel)) {
       onHeartbeatMessage(message);
-    } else if (Arrays.equals(channel, shutdownChannel)) {
-      onShutdownMessage(message);
     }
   }
 
@@ -129,23 +101,6 @@ public class HeartbeatMessager implements Subscriber {
     }
 
     networkCache.onHeartbeat(hb);
-  }
-
-  private void onShutdownMessage(byte[] message) {
-    ShutdownNotification sd = null;
-    try {
-      sd = ShutdownNotification.fromBytes(message);
-    } catch (Exception e) {
-      System.out.println("Received a message on the shutdown channel that could not be parsed.");
-      e.printStackTrace();
-      return;
-    }
-
-    if (sd.getServerId().equals(thisServerId)) {
-      return;
-    }
-
-    networkCache.onShutdown(sd);
   }
 
   /**

@@ -12,12 +12,11 @@ messaging:
     # The channels on which to publish and subscribe to messages. Each channel should be unique 
     # within the messaging instance being used, and the channels should be used for NOTHING else. 
     # For example, every connected server should use the same heartbeat channel, but they should not 
-    # use the same channel for both heartbeats and shutdowns. If two servers' channels are not the 
+    # use the same channel for both heartbeats and reservation requests. If two servers' channels are not the 
     # same, or if they overlap with another function's channel, this plugin will not work at all.
     # (Channel names will be encoded to UTF-8 bytes) Remember, they are case sensitive.
     channels:
         heartbeat: 'sc-hb'
-        shutdown: 'sc-sd'
         reservation-requests: 'sc-req'
         reservation-responses: 'sc-resp'
 

@@ -4,7 +4,6 @@ import java.util.List;
 
 import io.brutus.minecraft.serverclusters.cache.ServerStatus;
 import io.brutus.minecraft.serverclusters.protocol.Heartbeat;
-import io.brutus.minecraft.serverclusters.protocol.ShutdownNotification;
 import io.brutus.minecraft.serverclusters.selection.ServerSelectionMode;
 
 /**
@@ -19,14 +18,6 @@ public interface NetworkStatus {
    * @throws IllegalArgumentException on a <code>null</code> heartbeat.
    */
   void onHeartbeat(Heartbeat heartbeat) throws IllegalArgumentException;
-
-  /**
-   * Updates the network's status with the information contained in the shutdown notification.
-   * 
-   * @param shutdown The contents of a received shutdown notification from a connected server.
-   * @throws IllegalArgumentException on a <code>null</code> shutdown notification.
-   */
-  void onShutdown(ShutdownNotification shutdown) throws IllegalArgumentException;
 
   /**
    * Gets an ordered list of the ids of available servers. Orders by the given selection mode, only
