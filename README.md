@@ -9,8 +9,14 @@ What this means is that if you have 25 SkyWars-HungerGames-Prison-Zombie servers
 On top of that, ServerClusters picks the best available server in the cluster. Stop trusting your dumb, stupid, not-smart players to pick their own instances! ServerClusters currently supports three ways to place players:
 
 1. Load balancing: Players are placed on the emptiest server possible, distributing the load throughout the available instances.
-2. Matchmaking: Players are palced on the most full server that still has room for them, filling servers up fast. Along with being able to control when your server is open to players on different servers, this can be used to effectively and optimally make and maintain matches in your gametypes.
+2. Matchmaking: Players are placed on the most full server that still has room for them, filling servers up fast. Along with being able to control when your server is open to players on different servers, this can be used to effectively and optimally make and maintain matches in your gametypes.
 3. Random: Because why not?
+
+<br>
+
+**Usage:**
+To access the ServerClusters API from your plugin, after referencing the project, use:
+<code>ServerClusters.getSingleton();</code>
 
 <br>
 <br>
@@ -22,31 +28,47 @@ Firstly, clustering servers is user friendly. I know, you need to duplicate your
 
 However, why make players deal with that? Why offload complexity to them? It is bad and often lazy user-interface design. By clustering servers together, you reduce the complexity to its minimum level. Players _do_ need to be able to choose between "faction" and "prison", but they _do not_ need to choose between "prison-2" and "prison-231" when they are interchangeable.
 
-Additionally, using this user-friendly server clustering, players no long know the architecture of your network. Do you have 2 instances of your minigame or 200? They don't need to know, and it can be changing as often as you want it without any interruption or noticeable change. Just stability, simplicity, and bliss.
+Additionally, using this user-friendly server clustering, players no long know the architecture of your network. Do you have 2 instances of your minigame or 200? They don't need to know, and it can be changing as often as you want it without any interruption or noticeable change. Just stability, simplicity, and bliss. Although ServerClusters does not include it, this even opens the door for cool things like automatically scaling hosting.
 
-Although ServerClusters does not do this, this even opens the door for cool things like automatically scaling hosting which has the capacity to increase availability and drastically reduce hosting and administration costs.
+ServerClusters can accomplish optimal and decentralized matchmaking which can be an otherwise-hard problem. If your cluster is a set of interchangeable single-match servers, players can join the cluster and immediately be sent to the server that is closest to filling up a match. There is no centralized matchmaking queue or coordinating server. Matches are just filled as fast as there are players who want to play.
 
 <br>
 <br>
 
 ### But how does it work?
-ServerClusters creates a P2P network. There is no central coordinating server (except for a message broker like redis; see "Dependencies" below). There is no central config. Each server declares itself and which cluster it is a part of to the rest of the network by sending out heartbeat messages. Servers cache these heartbeat messages and get a local, slightly out-of-date version of the network's status. When a server says it is shutting down or stops sending out heartbeat messages, the network assumes it is offline. A heartbeat message contains:
+ServerClusters creates a P2P network. There is no central coordinating server (except for a message broker like redis; see "Dependencies" below). There is no central config. Each server declares itself and which cluster it is a part of to the rest of the network by sending out heartbeat messages. Servers cache these heartbeat messages and get a local, slightly out-of-date version of the network's status. When a server says it is shutting down or stops sending out heartbeat messages, the network assumes it is offline. 
+
+A heartbeat message contains:
+
 1. The server sending the heartbeat.
 2. The cluster that the server is a part of.
 3. The number of available player slots on the server.
 
 In networking, synchronization between remote servers is a real challenge. Without synchronization, using cached data can cause weird and bad behavior. To use cached data is to assume that nothing has changed since you cached it; that is a dangerous assumption. 
 
-Synchronization is why central coordinating servers are often used. However, in a ServerClusters' P2P network, each server coordinates only its own slots. That means that each server has synchronous control over the players being sent to it, but the system is still decentralized. In order to send players to a server, the sender first needs to get approval that the open player slots it sees in its cache still actually exist. Server 1 tries to reserve slots on server 2, gets approval, and then actually sends the players. If Server 3 tries to reserve the same slots on Server 2, it will get denied and try another server from the cache.
+Synchronization is why central coordinating servers are often used. However, in a ServerClusters' P2P network, each server coordinates only its own slots. That means that each server has synchronous control over the players being sent to it, but the system is still decentralized and fault tolerant. In order to send players to a server, the sender first needs to get approval that the open player slots it sees in its cache still actually exist. Server 1 tries to reserve slots on server 2, gets approval, and then actually sends the players. If Server 3 tries to reserve the same slots on Server 2, it will get denied and try another server from the cache.
 
 <br>
 <br>
 
 ### Dependencies
-ServerClusters depends on the PubSub utility. It is proprietary (so is ServerClusters), but this is not for the general public anyways. I am just trying to document how it works.
+ServerClusters is a Bukkit plugin.
 
-ServerClusters uses PubSub to send messages to connected servers. This messaging is what makes ServerClusters' P2P network tick! PubSub messaging is generally done via a redis instance, although this is open to change if PubSub changes.
+ServerClusters uses BungeeCord to send players. This also means that server ids need to be recognizable to BungeeCord.
 
-Currently, ServerClusters uses BungeeCord to send players. This also means that server ids need to be recognizable to BungeeCord.
+ServerClusters depends on the PubSub utility. It is proprietary (so is ServerClusters), but this is not for the general public anyways. I am just trying to document how it works. ServerClusters uses PubSub to send messages to connected servers. This messaging is what makes ServerClusters' P2P network tick! PubSub messaging is generally done via a redis instance, which means ServerClusters also implicitly depends on an available redis instance, although this is open to change if PubSub changes.
 
-ServerClusters includes no user interface. It is a library to accomplish all of the things listed above, except for how the user actually triggers the behavior. This could be something as simple as a command, or else things like item menus, sign-clicking, holograms, etc. All would be easy to implement on top of ServerClusters very simple API.
+ServerClusters includes no user interface. It is a library to accomplish all of the things listed above, except for how the user actually triggers the behavior. This could be something as simple as a command, or else things like item menus, sign-clicking, holograms, etc. All would be easy to implement on top of ServerClusters' API.
+
+<br><br>
+
+### Future Plans
+Future major changes to ServerClusters likely will include:
+
+- Removing the option to "opt out" of being in a cluster. Even if more conventional servers just create a cluster in which they are the only instance, ServerClusters will organize the entire network into clusters. It is okay if a server is not a part of a larger logical grouping, but logical groupings should be used as the primary unit of organization of the entire network regardless. <br><br> This also means that all servers' slots will be managed by ServerClusters. This will not change very much for the "normal" unclustered servers. All ServerClusters would do would be to coordinate its slots before players try to connect, rather than after. This also gives us a chance for more user-friendly failure (ie, "Sorry, that server is not available right now" rather than "java.blah.blah.Exception null cannot find ask bit"). <br><br> This also will probably have the benefit of less confusing documentation.
+
+- More social tools, especially the ability to send player(s) to the server of another specific player.
+
+- Improving API and documentation. Maybe creating an interface for the API so ServerClusters class is not too crowded.
+
+- (maybe) using ServerClusters as a way to track players on the network as a whole, such as sending out player lists with heartbeats. This seems somewhat unlikely and like ServerClusters might not be the best place for this, if we did want the feature.
