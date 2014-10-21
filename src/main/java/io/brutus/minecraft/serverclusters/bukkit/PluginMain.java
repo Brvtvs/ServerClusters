@@ -20,7 +20,6 @@ public class PluginMain extends JavaPlugin {
 
   @Override
   public void onDisable() {
-    sc.stopHeartbeat();
 
     getLogger().info("has disabled.");
   }
