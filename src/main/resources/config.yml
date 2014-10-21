@@ -2,6 +2,58 @@
 # NOTE: All text strings are case-sensitive! Ids, channel names, etc. all must be in the correct case!
 #
 
+# ------------------------------
+# Configuration for this server.
+# ------------------------------
+this-server:
+
+    # This Minecraft server's id. This must be the same as BungeeCord knows it.
+    server-id: 'server1'
+    
+    # The name of the cluster that this server is a part of. It is okay if this server is the only 
+    # member of its cluster. However, it has to have a cluster id no matter what, because players 
+    # cluster ids are what is used to relocate players on the network. Cluster ids are like a logical 
+    # address on the network. You can be the only person living at an address or you can be
+    # one of ten, but you need to have an address to get mail regardless.
+    cluster-id: 'cluster1'
+    
+    # The maximum number of players allowed on this server. Other servers will use this in order to 
+    # decide when to send players here. This number can be dynamically overwritten via the 
+    # ServerClusters API. This will not overwrite the Minecraft server's official number of slots.
+    # That needs to be edited separately and should be higher than this number. 
+    default-player-slots: 25
+    
+    # Whether to kick players who have not reserved a slot when they try to log in to this server, 
+    # even if there are slots freely available. Players sent through the ServerClusters API will 
+    # almost always have a reservation. Players sent via other means (ex: /server yourserver) will not.
+    strict-reservations: false
+    
+# -------------------------------------------------------
+# Configuration for how to treat clusters on the network.
+# -------------------------------------------------------
+clusters:
+    # How to treat clusters of connected servers when sending players to them.
+    #
+    # Currently supported:
+    # 1. 'matchmaking' - puts the players in the server with the least number of open slots, but still 
+    #     enough for the number of players being sent. This causes servers to fill up as fast as 
+    #     possible, which is a way to accomplish efficient matchmaking.
+    # 2. 'loadbalancing' - puts the players in the server with the most number of open slots. This 
+    #     causes each server to be used roughly equally, spreading the load throughout the cluster. 
+    # 3. 'random' - puts the players in any random server in the cluster that has enough slots. 
+    #
+    # Any cluster that is not configured will default to 'random' mode if players are sent to it from
+    # this server.
+    server-selection:
+    
+        # <cluster id>: '<selection mode>'
+        cluster1: 'matchmaking'
+        cluster2: 'loadbalancing'
+        cluster3: 'random'
+
+# -----------------------------------------
+# Configuration for cross-server messaging.
+# -----------------------------------------
 # How connected servers interact with each other. (required for all ServerClusters functions)
 # This plugin relies on the PubSub plugin library for messaging.
 messaging:
@@ -12,56 +64,35 @@ messaging:
     # The channels on which to publish and subscribe to messages. Each channel should be unique 
     # within the messaging instance being used, and the channels should be used for NOTHING else. 
     # For example, every connected server should use the same heartbeat channel, but they should not 
-    # use the same channel for both heartbeats and reservation requests. If two servers' channels are not the 
+    # use the same channel for both heartbeats and reservation responses. If two servers' channels are not the 
     # same, or if they overlap with another function's channel, this plugin will not work at all.
     # (Channel names will be encoded to UTF-8 bytes) Remember, they are case sensitive.
     channels:
         heartbeat: 'sc-hb'
         reservation-requests: 'sc-req'
         reservation-responses: 'sc-resp'
+        
+        
+# ------------------------------------------------
+# Configuration for various advanced time options.
+# ------------------------------------------------
+# ADVANCED! Do not edit these unless you know what you are doing!
+# The default settings are generally reasonable.
+timings: 
 
-
-# ServerClusters creates a peer-to-peer network with connected gameservers where each gameserver plays the 
-# roles of ServerClusters "client" and/or "server". There is no central server that coordinates 
-# everything, so each gameserver on the network is a ServerClusters client and/or server.
-server-functions:
-
-    # If false, this server will still be able to send players to ServerClusters clusters. However, 
-    # ServerClusters will not send heartbeats for this server or force other servers to send players 
-    # here through ServerClusters' API. If false, the rest of the "server-functions" section is ignored.
-    enabled: true
-    
-    # The name of the cluster that this server is a part of.
-    cluster-id: 'cluster1'
-    
-    # The number of players that connected servers can send to this server. The number of available 
-    # slots will go down as players log in and occupy slots and go back up when players log out. This 
-    # number can be dynamically overwritten via the ServerClusters API.
-    default-player-slots: 25
-    
-    # Whether to prevent players who do not have a slot reservation when they try to log in, even if 
-    # there are slots freely available. Players sent through the ServerClusters API will almost always
-    # have a reservation. Players sent via other means (ex: /server yourserver) will not.
-    kick-unwelcome-players: true
-    
-    # (ADVANCED. Do not touch unless you know what you are doing)
-    # How long, in milliseconds, after granting a reservation should this server wait for the 
-    # players who hold the reservation to log in before revoking their reservations.
-    # (Only players who have a valid reservation are allowed to join with server-functions enabled).
-    reservation-timeout: 5000
-    
-    # (ADVANCED. Do not touch unless you know what you are doing)
     # Servers' heart rates (how often heartbeats are sent) are not constant. They will increase when the 
     # locally-set number of open slots changes. When changes are happening, more heartbeats are sent to 
     # reduce the chance of connected servers having outdated information. The more changes there are, 
     # the faster the heart rate will be. However, even when there is no change, the server will still 
     # send heartbeats periodically to let other servers know it is still responsive and available.
     heart-rate:
+    
         # The MAXIMUM amount of time, in millseconds, between outgoing heartbeats. In order to let other 
         # servers know this server is okay, heartbeat messages need to be sent even if no change has 
         # taken place on this server. This is the amount of time in between outgoing heartbeats when 
         # the number of open slots is not changing.
         min-rate: 5000
+        
         # The MINIMUM amount of time, in milliseconds, between outgoing heartbeats. Heartbeat messages 
         # will not be sent more often than every <this number> of milliseconds. A lower number means 
         # heartbeat messages are sent more often when players log into/out of this server. This means 
@@ -69,40 +100,19 @@ server-functions:
         # but a lower number also will increase traffic and possibly strain this server and the
         # network's communications.
         max-rate: 500
-
-        
-client-functions:
-
-    # The id of this Minecraft server. Must be unique and the same as it is known to any proxies like BungeeCord.
-    server-id: 'server1'
     
     # The amount of time, in milliseconds, to wait in between incoming heartbeats from a connected 
-    # server before assuming that it is unresponsive. This should obviously be more than other 
+    # server before assuming that it is offline/unresponsive. This should obviously be more than other 
     # servers' minimum heart rate, or else this server will think other servers are unresponsive for 
     # no reason. Something like 2-4x their minimum heart rate makes sense, which allows one or two 
     # messages to be missed somehow before the connected server is considered unresponsive.
     server-timeout: 15000
     
-    #(ADVANCED. Do not touch unless you know what you are doing)
     # How long, in milliseconds, after sending a reservation-request should the requesting server 
-    # give up and try another server.
+    # give up? This applies both to requests sent to a specific server, and those sent looking for
+    # the server of a given player.
     response-timeout: 2000
-    
-    # How to treat clusters of connected servers when sending players to them.
-    #
-    # Currently supported:
-    # 1. 'matchmaking' - puts the players in the server with the least number of open slots, but still 
-    #     enough for the number of players being sent. This causes servers to fill up as fast as 
-    #     possible, which is a way to accomplish efficient matchmaking.
-    # 2. 'loadbalancing' - puts the players in the server with the most number of open slots. This 
-    #     causes each server to be used roughly equally, spreading the load throughout the cluster. 
-    # 3. 'random' - puts the players in any random server in the cluster that has enough slots. 
-    server-selection:
-    
-        # <cluster id>: '<selection mode>'
-        cluster1: 'matchmaking'
-        cluster2: 'loadbalancing'
-        cluster3: 'random'
-        
 
-        
+    # After granting players a reservation, how long should this server wait (in milliseconds) before
+    # revoking that reservation and reopening the reserved slot for other players?
+    reservation-timeout: 5000

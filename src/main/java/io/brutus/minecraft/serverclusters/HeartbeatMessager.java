@@ -38,7 +38,7 @@ public class HeartbeatMessager implements Subscriber {
       throw new IllegalArgumentException("params cannot be null");
     }
 
-    this.thisServerId = config.getGameServerId();
+    this.thisServerId = config.getServerId();
 
     this.slotManager = slotManager;
     this.networkCache = networkStatus;
@@ -56,9 +56,7 @@ public class HeartbeatMessager implements Subscriber {
 
     messager.subscribe(heartbeatChannel, this);
 
-    this.baseMessage =
-        Heartbeat.createMessage(config.getServerConfig().getClusterId(), config.getGameServerId(),
-            0);
+    this.baseMessage = Heartbeat.createMessage(config.getClusterId(), config.getServerId(), 0);
 
     startHeartBeating(config);
   }
@@ -117,8 +115,8 @@ public class HeartbeatMessager implements Subscriber {
    */
   private void startHeartBeating(ServerClustersConfig config) {
     alive = true;
-    final long checkInInterval = config.getServerConfig().getMaxHeartRate();
-    final long maxWaitTime = config.getServerConfig().getMinHeartRate();
+    final long checkInInterval = config.getMaxHeartRate();
+    final long maxWaitTime = config.getMinHeartRate();
 
     new Thread(new Runnable() {
 

@@ -68,9 +68,8 @@ public class ServerClusters implements ServerClustersAPI {
     this.config = new PluginConfig(plugin);
 
     BukkitSlotManager bukkitSlots =
-        new BukkitSlotManager(plugin, config.getServerConfig().getTotalSlots(), config
-            .getServerConfig().getReservationTimeout(), config.getServerConfig()
-            .enforceReservations());
+        new BukkitSlotManager(plugin, config.getTotalSlots(), config.getReservationTimeout(),
+            config.strictReservations());
 
     plugin.getServer().getPluginManager().registerEvents(bukkitSlots, plugin);
     this.slotManager = bukkitSlots;
@@ -80,20 +79,21 @@ public class ServerClusters implements ServerClustersAPI {
     heartbeats = new HeartbeatMessager(config, network, slotManager);
     relocator = new PlayerRelocator(config, network, slotManager);
 
-    plugin.getCommand("networkstatus").setExecutor(
-        new NetworkStatusCommand(network, slotManager, config.getGameServerId(), config
-            .getServerConfig().getClusterId()));
+    plugin.getCommand("networkstatus")
+        .setExecutor(
+            new NetworkStatusCommand(network, slotManager, config.getServerId(), config
+                .getClusterId()));
   }
 
 
   @Override
   public String getServerId() {
-    return config.getGameServerId();
+    return config.getServerId();
   }
 
   @Override
   public String getClusterId() {
-    return config.getServerConfig().getClusterId();
+    return config.getClusterId();
   }
 
   @Override

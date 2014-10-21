@@ -50,7 +50,7 @@ public class PlayerRelocator implements Subscriber {
     }
 
     this.responseTimeout = config.getResponseTimeout();
-    this.thisServerId = config.getGameServerId();
+    this.thisServerId = config.getServerId();
 
     this.slotManager = slotManager;
     this.network = network;
@@ -88,7 +88,7 @@ public class PlayerRelocator implements Subscriber {
    * <p>
    * Players will be relocated asynchronously (not immediately). It will take some time before an
    * instance is found and approved and the players are relocated to it. During that time, the
-   * players will still be able to run around, play, and interact with this gameserver they are
+   * players will still be able to run around, play, and interact with this server they are
    * currently on.
    * <p>
    * Once this process has started, it cannot be stopped. If multiple requests are made for the same
