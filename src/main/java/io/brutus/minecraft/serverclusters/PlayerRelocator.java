@@ -28,7 +28,6 @@ import com.google.common.util.concurrent.SettableFuture;
  */
 public class PlayerRelocator implements Subscriber {
 
-  private final boolean actAsServer;
   private final String thisServerId;
 
   private final NetworkStatus network;
@@ -46,11 +45,10 @@ public class PlayerRelocator implements Subscriber {
   public PlayerRelocator(ServerClustersConfig config, NetworkStatus network, SlotManager slotManager)
       throws IllegalArgumentException {
 
-    if (config == null || network == null) {
+    if (config == null || network == null || slotManager == null) {
       throw new IllegalArgumentException("params cannot be null");
     }
 
-    this.actAsServer = config.actAsServer();
     this.responseTimeout = config.getResponseTimeout();
     this.thisServerId = config.getGameServerId();
 
@@ -70,14 +68,7 @@ public class PlayerRelocator implements Subscriber {
     }
 
     messager.subscribe(responseChannel, this);
-
-    if (actAsServer) { // does things not necessary unless fulfilling other instances' requests
-      if (slotManager == null) {
-        throw new IllegalArgumentException(
-            "slot manager cannot be null when server functions are enabled");
-      }
-      messager.subscribe(requestChannel, this);
-    }
+    messager.subscribe(requestChannel, this);
 
     threadPool = Executors.newCachedThreadPool();
     requestCounter = new AtomicInteger();
@@ -145,9 +136,6 @@ public class PlayerRelocator implements Subscriber {
   }
 
   private void onRequestMessage(byte[] message) {
-    if (!actAsServer) {
-      return;
-    }
 
     ReservationRequest rr = null;
     try {

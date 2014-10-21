@@ -25,7 +25,6 @@ public class PluginConfig implements ServerClustersConfig, ServerClustersServerC
   private byte[] reservationChannel;
   private byte[] responseChannel;
 
-  private boolean actAsServer;
   private String clusterId;
   private int totalSlots;
   private boolean enforceReservations;
@@ -61,17 +60,14 @@ public class PluginConfig implements ServerClustersConfig, ServerClustersServerC
       responseChannel = channelsSec.getString("reservation-responses").getBytes(CHARSET);
 
       ConfigurationSection serverSec = config.getConfigurationSection("server-functions");
-      actAsServer = serverSec.getBoolean("enabled");
-      if (actAsServer) {
-        clusterId = serverSec.getString("cluster-id");
-        totalSlots = serverSec.getInt("default-player-slots");
-        enforceReservations = serverSec.getBoolean("kick-unwelcome-players");
-        reservationTimeout = serverSec.getLong("reservation-timeout");
+      clusterId = serverSec.getString("cluster-id");
+      totalSlots = serverSec.getInt("default-player-slots");
+      enforceReservations = serverSec.getBoolean("kick-unwelcome-players");
+      reservationTimeout = serverSec.getLong("reservation-timeout");
 
-        ConfigurationSection heartSec = serverSec.getConfigurationSection("heart-rate");
-        minHeartRate = heartSec.getLong("min-rate");
-        maxHeartRate = heartSec.getLong("max-rate");
-      }
+      ConfigurationSection heartSec = serverSec.getConfigurationSection("heart-rate");
+      minHeartRate = heartSec.getLong("min-rate");
+      maxHeartRate = heartSec.getLong("max-rate");
 
       ConfigurationSection clientSec = config.getConfigurationSection("client-functions");
       serverId = clientSec.getString("server-id");
@@ -123,16 +119,8 @@ public class PluginConfig implements ServerClustersConfig, ServerClustersServerC
   }
 
   @Override
-  public boolean actAsServer() {
-    return actAsServer;
-  }
-
-  @Override
   public ServerClustersServerConfig getServerConfig() {
-    if (actAsServer) {
-      return this;
-    }
-    return null;
+    return this;
   }
 
   @Override

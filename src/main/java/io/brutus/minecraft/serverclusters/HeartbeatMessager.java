@@ -17,13 +17,9 @@ import io.brutus.networking.pubsubmessager.Subscriber;
  * open slots changes often, the heart will beat fast in order to reduce the chances of a connected
  * server having outdated information. When no change is happening, the heart will beat more slowly,
  * just periodically letting connected servers know that this server has not crashed.
- * <p>
- * If this ServerClusters instance is not in the role of server in the P2P network, heartbeats are
- * only received and cached; none are sent to connected servers about this server's status.
  */
 public class HeartbeatMessager implements Subscriber {
 
-  private final boolean actAsServer;
   private final String thisServerId;
 
   private final SlotManager slotManager;
@@ -38,11 +34,10 @@ public class HeartbeatMessager implements Subscriber {
   public HeartbeatMessager(ServerClustersConfig config, NetworkStatus networkStatus,
       SlotManager slotManager) throws IllegalArgumentException {
 
-    if (config == null || networkStatus == null) {
+    if (config == null || networkStatus == null || slotManager == null) {
       throw new IllegalArgumentException("params cannot be null");
     }
 
-    this.actAsServer = config.actAsServer();
     this.thisServerId = config.getGameServerId();
 
     this.slotManager = slotManager;
@@ -61,21 +56,11 @@ public class HeartbeatMessager implements Subscriber {
 
     messager.subscribe(heartbeatChannel, this);
 
+    this.baseMessage =
+        Heartbeat.createMessage(config.getServerConfig().getClusterId(), config.getGameServerId(),
+            0);
 
-    if (actAsServer) { // does things not necessary unless fulfilling other instances' requests.
-      if (slotManager == null) {
-        throw new IllegalArgumentException(
-            "slot manager cannot be null when server functions are enabled");
-      }
-
-      this.baseMessage =
-          Heartbeat.createMessage(config.getServerConfig().getClusterId(),
-              config.getGameServerId(), 0);
-
-      startHeartBeating(config);
-    } else {
-      this.baseMessage = null;
-    }
+    startHeartBeating(config);
   }
 
   @Override

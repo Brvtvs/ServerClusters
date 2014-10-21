@@ -22,16 +22,15 @@ public class NetworkStatusCommand implements CommandExecutor {
    * Class constructor.
    * 
    * @param network The network's status.
-   * @param slots The manager of local slots, if this gameserver is a p2p-server. Can be
-   *        <code>null</code> to exclude this information.
-   * @param serverId The id of this gameserver.
-   * @param clusterId The cluster this gameserver is a part of. Can be <code>null</code> to exclude
-   *        this information.
+   * @param slots The manager of local slots.
+   * @param serverId The id of this server.
+   * @param clusterId The cluster this server is a part of. Can be <code>null</code> to exclude this
+   *        information.
    * @throws IllegalArgumentException on a <code>null</code> network status or server id.
    */
   public NetworkStatusCommand(NetworkStatus network, SlotManager slots, String serverId,
       String clusterId) throws IllegalArgumentException {
-    if (network == null || serverId == null) {
+    if (network == null || serverId == null || slots == null) {
       throw new IllegalArgumentException("network and server idcannot be null");
     }
     this.network = network;

@@ -17,18 +17,18 @@ import com.google.common.util.concurrent.ListenableFuture;
 import com.google.common.util.concurrent.SettableFuture;
 
 /**
- * A utility that groups interchangeable gameservers together into clusters so they can be
+ * A utility that groups interchangeable Minecraft servers together into clusters so they can be
  * provisioned as a group. Supports matchmaking and load-balancing provision for players, so that
  * when they are sent to a cluster, they can be sent to the currently optimal instance.
  * <p>
- * Functions as a peer-to-peer network, with each gameserver serving as a client and/or server on
- * the network. There is no central coordinator. Gameservers announce themselves, announce what
- * cluster they are a part of, and then periodically send heartbeat messages to update the network
- * on their status.
+ * Functions as a peer-to-peer network, with each Minecraft server serving as a client and server on
+ * the network. There is no central coordinator. Servers announce themselves, announce what cluster
+ * they are a part of, and then periodically send heartbeat messages to update the network on their
+ * status.
  * <p>
- * Each gameserver then serves as the coordinator for its own player slots only, allowing other
- * gameservers to contact it, reserve slots, and then send players to those slots. In this way, the
- * peer-to-peer network translates approximate, cached data from heartbeats into synchronous,
+ * Each Minecraft server then serves as the coordinator for its own player slots only, allowing
+ * other servers to contact it, reserve slots, and then send players to those slots. In this way,
+ * the peer-to-peer network translates approximate, cached data from heartbeats into synchronous,
  * coordinated instance provision for players.
  */
 public class ServerClusters implements ServerClustersAPI {
@@ -67,34 +67,22 @@ public class ServerClusters implements ServerClustersAPI {
     this.plugin = plugin;
     this.config = new PluginConfig(plugin);
 
-    if (config.actAsServer()) {
+    BukkitSlotManager bukkitSlots =
+        new BukkitSlotManager(plugin, config.getServerConfig().getTotalSlots(), config
+            .getServerConfig().getReservationTimeout(), config.getServerConfig()
+            .enforceReservations());
 
-      BukkitSlotManager bukkitSlots =
-          new BukkitSlotManager(plugin, config.getServerConfig().getTotalSlots(), config
-              .getServerConfig().getReservationTimeout(), config.getServerConfig()
-              .enforceReservations());
-
-      plugin.getServer().getPluginManager().registerEvents(bukkitSlots, plugin);
-      this.slotManager = bukkitSlots;
-
-    } else {
-      slotManager = null;
-    }
+    plugin.getServer().getPluginManager().registerEvents(bukkitSlots, plugin);
+    this.slotManager = bukkitSlots;
 
     network = new NetworkCache(config);
 
     heartbeats = new HeartbeatMessager(config, network, slotManager);
     relocator = new PlayerRelocator(config, network, slotManager);
 
-
-    if (config.actAsServer()) {
-      plugin.getCommand("networkstatus").setExecutor(
-          new NetworkStatusCommand(network, slotManager, config.getGameServerId(), config
-              .getServerConfig().getClusterId()));
-    } else {
-      plugin.getCommand("networkstatus").setExecutor(
-          new NetworkStatusCommand(network, null, config.getGameServerId(), null));
-    }
+    plugin.getCommand("networkstatus").setExecutor(
+        new NetworkStatusCommand(network, slotManager, config.getGameServerId(), config
+            .getServerConfig().getClusterId()));
   }
 
 

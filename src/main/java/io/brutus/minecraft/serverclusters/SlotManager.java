@@ -6,33 +6,34 @@ import java.util.UUID;
 import com.google.common.util.concurrent.ListenableFuture;
 
 /**
- * Manager for the player slots on gameservers in the role of p2p-servers on a ServerClusters
- * network.
+ * Manager for the player slots on servers managed by ServerClusters.
  */
 public interface SlotManager {
 
   /**
-   * Asynchronously updates the total number of player slots on this gameserver.
+   * Makes an asynchronous attempt to update the total number of player slots.
+   * <p>
+   * Only affects new connections; does not affect players currently online or players in the
+   * process of connecting to this server.
    * <p>
    * This number minus the number of players currently online defines how many players other servers
    * can send here and affects whether they will pick this server.
    * <p>
    * May not take effect immediately. If the number of slots is reduced and there are still players
-   * connecting to this gameserver to occupy open slots, this process will not complete until they
-   * finish connecting or timeout. No new player connections will be authorized, but existing ones
-   * will be allowed to complete. It is not safe to assume that players have stopped legitimately
-   * connecting until the asynchronous future object is done.
+   * connecting to this server to occupy their reserved slots, this process will not complete until
+   * they finish connecting or timeout. No new player connections will be authorized, but existing
+   * ones will be allowed to complete. It is not safe to assume that players have stopped
+   * legitimately connecting until the asynchronous future object is done.
    * <p>
    * Does not affect players currently online this server in any way. For example, it is fully
    * possible to make sure no players are sent here, such as during a match, by setting the total
-   * number of slots to <code>0</code>. Doing so will not kick any players that are currently
-   * online.
+   * number of slots to <code>0</code> and then waiting for this process to complete. Doing so will
+   * not kick any players that are currently online.
    * <p>
    * In addition to overwriting the total number of player slots, this overrides any existing
    * uncompleted attempt to update the total slots, causing its future objects to return
    * <code>false</code>.
-   * <p>
-   * Does nothing if p2p-server functionality is disabled.
+   * 
    * 
    * @param totalSlots The total number of player slots that connected servers can fill with
    *        players.
@@ -45,27 +46,30 @@ public interface SlotManager {
   ListenableFuture<Boolean> setTotalSlots(int totalSlots) throws IllegalArgumentException;
 
   /**
-   * Gets the current total number of player slots on this gameserver.
+   * Gets the current total number of player slots on this game server.
    * <p>
-   * This number can change over time. The current number of online players may exceed this number,
-   * as reducing it does not affect players currently online.
+   * This number can change over time and without affecting online players. As such, the total
+   * number of slots does not reflect how many players are online.
    * 
-   * @return The total number of player slots that connected servers can fill with players.
+   * @return The currently set total number of player slots.
    */
   int getTotalSlots();
 
   /**
-   * Gets the number of player slots currently open on this gameserver.
+   * Gets the current number of open slots on this server.
+   * <p>
+   * This number is the current total number of slots minus the number of players online and the
+   * number of players in the process of connecting to this server.
    * 
-   * @return The number of unoccupied player slots.
+   * @return The number of open slots on this server.
    */
   int getOpenSlots();
 
   /**
    * Attempts to get a reservation on player slots for a set of players.
    * <p>
-   * A reservation allows players connecting to this gameserver to log in. Players without
-   * reservations will be kicked when they try to join.
+   * A reservation allows players connecting to this server to log in. Players without reservations
+   * will be kicked when they try to join.
    * <p>
    * Reservations will expire after a configured timeout.
    * <p>
