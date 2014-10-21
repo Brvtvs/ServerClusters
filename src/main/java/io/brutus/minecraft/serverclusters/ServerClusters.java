@@ -98,6 +98,16 @@ public class ServerClusters {
   }
 
   /**
+   * Gets the id of this server, as it is uniquely identified on the network to other servers,
+   * proxies, etc.
+   * 
+   * @return This server's id. <code>null</code> if p2p-server functionality is disabled.
+   */
+  public String getServerId() {
+    return config.getGameServerId();
+  }
+
+  /**
    * Makes an asynchronous attempt to send players to an instance of the given cluster together.
    * <p>
    * Players will be sent as a group to the same instance of the cluster. Only servers with enough
@@ -161,6 +171,23 @@ public class ServerClusters {
   }
 
   /**
+   * Gets whether this instance of ServerClusters is acting in the role of server on the
+   * ServerClusters decentralized, peer-to-peer network.
+   * <p>
+   * In the p2p-server role, this instance will send out heartbeat messages about its status to
+   * connected servers, declare itself as a member of a cluster, and allow players to be sent to its
+   * open slots as an instance of that cluster.
+   * <p>
+   * If not in the server role, this instance will still listen for heartbeats from connected
+   * servers and be able to send players to clusters on the ServerClusters network.
+   * 
+   * @return <code>true</code> if this instance is a ServerClusters p2p server.
+   */
+  public boolean isP2PServer() {
+    return config.actAsServer();
+  }
+
+  /**
    * Asynchronously updates the total number of player slots on this gameserver. Only affects new
    * connections; does not affect players currently online or players in the process of connecting
    * to this gameserver.
@@ -190,38 +217,16 @@ public class ServerClusters {
    * @return A future object that will update when this operation is complete. Returns
    *         <code>true</code> when the number of slots is successfully altered and any existing
    *         player connections are resolved. <code>false</code> if the process is interrupted
-   *         before definitively completing.
+   *         before definitively completing or if p2p-server functionality is disabled.
    * @throws IllegalArgumentException on a negative value.
    */
   public ListenableFuture<Boolean> updateTotalSlots(int totalSlots) throws IllegalArgumentException {
+    if (!isP2PServer()) {
+      SettableFuture<Boolean> ret = SettableFuture.create();
+      ret.set(false);
+      return ret;
+    }
     return slotManager.setTotalSlots(totalSlots);
-  }
-
-  /**
-   * Gets the id of this server, as it is uniquely identified on the network to other servers,
-   * proxies, etc.
-   * 
-   * @return This server's id. <code>null</code> if p2p-server functionality is disabled.
-   */
-  public String getServerId() {
-    return config.getGameServerId();
-  }
-
-  /**
-   * Gets whether this instance of ServerClusters is acting in the role of server on the
-   * ServerClusters decentralized, peer-to-peer network.
-   * <p>
-   * In the p2p-server role, this instance will send out heartbeat messages about its status to
-   * connected servers, declare itself as a member of a cluster, and allow players to be sent to its
-   * open slots as an instance of that cluster.
-   * <p>
-   * If not in the server role, this instance will still listen for heartbeats from connected
-   * servers and be able to send players to clusters on the ServerClusters network.
-   * 
-   * @return <code>true</code> if this instance is a ServerClusters p2p server.
-   */
-  public boolean isP2PServer() {
-    return config.actAsServer();
   }
 
   /**
@@ -231,7 +236,7 @@ public class ServerClusters {
    *         be part of a cluster or if p2p-server functionality is disabled.
    */
   public String getClusterId() {
-    if (config.actAsServer()) {
+    if (!isP2PServer()) {
       return config.getServerConfig().getClusterId();
     }
     return null;
@@ -247,10 +252,10 @@ public class ServerClusters {
    * Does not stop this server from receiving heartbeats or finding instances of clusters to send
    * players to.
    * <p>
-   * Does nothing if p2p server functionality is disabled.
+   * Does nothing if p2p-server functionality is disabled.
    */
   public void stopHeartbeat() {
-    if (!config.actAsServer()) {
+    if (!isP2PServer()) {
       return;
     }
     heartbeats.shutdown();
