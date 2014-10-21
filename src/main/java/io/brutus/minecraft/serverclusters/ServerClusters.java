@@ -126,13 +126,11 @@ public class ServerClusters implements ServerClustersAPI {
   @Override
   public ListenableFuture<Boolean> sendPlayersToCluster(String clusterId, UUID... players)
       throws IllegalArgumentException {
+    if (clusterId == null || clusterId.equals("")) {
+      throw new IllegalArgumentException("cluster id cannot be null or empty");
+    }
     if (players == null || players.length < 1) {
       throw new IllegalArgumentException("players cannot be null or empty");
-    }
-
-    ServerSelectionMode mode = config.getSelectionMode(clusterId);
-    if (mode == null) {
-      throw new IllegalArgumentException("could not find configuration for the given cluster id");
     }
 
     Set<UUID> pSet = sanitizePlayers(players);
@@ -141,6 +139,14 @@ public class ServerClusters implements ServerClustersAPI {
       SettableFuture<Boolean> ret = SettableFuture.create();
       ret.set(true);
       return ret;
+    }
+
+    ServerSelectionMode mode = config.getSelectionMode(clusterId);
+    if (mode == null) {
+      mode = ServerSelectionMode.RANDOM;
+      plugin.getLogger().warning(
+          "Players are being sent to cluster '" + clusterId
+              + "', but it is not configured. Defaulting to random instance selection...");
     }
 
     return relocator.sendPlayers(clusterId, mode, pSet);
