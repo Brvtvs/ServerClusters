@@ -16,7 +16,6 @@ import com.google.common.collect.Multimap;
 import com.google.common.collect.Multimaps;
 
 import io.brutus.minecraft.serverclusters.NetworkStatus;
-import io.brutus.minecraft.serverclusters.ServerClustersConfig;
 import io.brutus.minecraft.serverclusters.protocol.Heartbeat;
 import io.brutus.minecraft.serverclusters.selection.ServerSelectionMode;
 
@@ -26,23 +25,23 @@ import io.brutus.minecraft.serverclusters.selection.ServerSelectionMode;
  */
 public class NetworkCache implements NetworkStatus, ExpirationListener<String, ServerStatus> {
 
-  private ServerClustersConfig config;
+  private final long serverTimeout;
 
   private Multimap<String, ServerStatus> clusters; // <cluster id, server statuses within cluster>
   private ExpiringMap<String, ServerStatus> servers; // <server id, server status>
 
-  public NetworkCache(ServerClustersConfig config) {
-    if (config == null) {
-      throw new IllegalArgumentException("config cannot be null");
+  public NetworkCache(long serverTimeout) throws IllegalArgumentException {
+    if (serverTimeout < 1) {
+      throw new IllegalArgumentException("server timeout must be positive");
     }
 
-    this.config = config;
+    this.serverTimeout = serverTimeout;
 
     HashMultimap<String, ServerStatus> notThreadSafe = HashMultimap.create();
     clusters = Multimaps.synchronizedSetMultimap(notThreadSafe);
 
     servers =
-        ExpiringMap.builder().expiration(config.getServerTimeout(), TimeUnit.MILLISECONDS)
+        ExpiringMap.builder().expiration(serverTimeout, TimeUnit.MILLISECONDS)
             .expirationPolicy(ExpirationPolicy.ACCESSED).expirationListener(this).build();
   }
 
@@ -137,7 +136,7 @@ public class NetworkCache implements NetworkStatus, ExpirationListener<String, S
   }
 
   private boolean hasTimedOut(ServerStatus server) {
-    return (System.currentTimeMillis() - server.getLastUpdated()) > config.getServerTimeout();
+    return (System.currentTimeMillis() - server.getLastUpdated()) > serverTimeout;
   }
 
 }
