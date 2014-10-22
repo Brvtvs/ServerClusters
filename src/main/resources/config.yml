@@ -11,10 +11,10 @@ this-server:
     server-id: 'server1'
     
     # The name of the cluster that this server is a part of. It is okay if this server is the only 
-    # member of its cluster. However, it has to have a cluster id no matter what, because players 
-    # cluster ids are what is used to relocate players on the network. Cluster ids are like a logical 
+    # member of its cluster. However, you must select a cluster id no matter what, because cluster 
+    # ids are what is used to relocate players on the network. Cluster ids are like a logical 
     # address on the network. You can be the only person living at an address or you can be
-    # one of ten, but you need to have an address to get mail regardless.
+    # one of ten, but you need to have an address to get mail.
     cluster-id: 'cluster1'
     
     # The maximum number of players allowed on this server. Other servers will use this in order to 
