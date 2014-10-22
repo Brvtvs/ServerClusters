@@ -181,6 +181,10 @@ public class ServerClusters implements ServerClustersAPI {
     return plugin;
   }
 
+  void onDisable() {
+    heartbeats.destroy();
+  }
+
   private Set<UUID> sanitizePlayers(UUID[] players) throws IllegalArgumentException {
     if (players == null || players.length < 1) {
       throw new IllegalArgumentException("players cannot be null or empty");

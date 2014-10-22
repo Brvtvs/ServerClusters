@@ -18,6 +18,7 @@ public class PluginMain extends JavaPlugin {
 
   @Override
   public void onDisable() {
+    sc.onDisable();
 
     getLogger().info("has disabled.");
   }

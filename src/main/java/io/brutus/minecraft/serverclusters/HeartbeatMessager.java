@@ -61,6 +61,14 @@ public class HeartbeatMessager implements Subscriber {
     startHeartBeating(config);
   }
 
+  /**
+   * Stops this from sending/receiving any more heartbeats. Cannot be reversed.
+   */
+  public void destroy() {
+    messager.unsubscribe(heartbeatChannel, this);
+    alive = false;
+  }
+
   @Override
   public void onMessage(byte[] channel, byte[] message) {
     if (Arrays.equals(channel, heartbeatChannel)) {
