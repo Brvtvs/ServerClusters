@@ -34,13 +34,13 @@ public class BukkitSlotManager implements SlotManager, Listener, ExpirationListe
   private volatile int totalSlots;
   private final AtomicInteger onlinePlayers;
 
-  private final boolean enforceReservations;
+  private final boolean strictReservations;
   private final Map<UUID, Long> reservations;
 
   private SettableFuture<Boolean> future;
 
   public BukkitSlotManager(PluginMain plugin, int totalSlots, long reservationTimeout,
-      boolean enforceReservations) throws IllegalArgumentException {
+      boolean strictReservations) throws IllegalArgumentException {
     if (plugin == null) {
       throw new IllegalArgumentException("plugin cannot be null");
     }
@@ -52,7 +52,7 @@ public class BukkitSlotManager implements SlotManager, Listener, ExpirationListe
     }
 
     this.plugin = plugin;
-    this.enforceReservations = enforceReservations;
+    this.strictReservations = strictReservations;
     this.totalSlots = totalSlots;
     this.onlinePlayers = new AtomicInteger(plugin.getServer().getOnlinePlayers().length);
 
@@ -131,7 +131,7 @@ public class BukkitSlotManager implements SlotManager, Listener, ExpirationListe
     }
 
     if (reservationMade == null) {
-      if (enforceReservations) {
+      if (strictReservations) {
         // no reservation, gtfo
         event
             .disallow(Result.KICK_OTHER,
