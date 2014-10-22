@@ -71,16 +71,28 @@ public class ServerUtil {
     });
   }
 
-  public static boolean isPlayerOnline(UUID player) {
-    Player p = Bukkit.getPlayer(player);
+  /**
+   * Gets whether there is a player online with the given unique id.
+   * 
+   * @param id The id to search with.
+   * @return <code>true</code> if the player is currently online.
+   */
+  public static boolean isPlayerOnline(UUID id) {
+    Player p = Bukkit.getPlayer(id);
     if (p == null || !p.isOnline()) {
       return false;
     }
     return true;
   }
 
-  public static boolean isPlayerOnline(String playerName) {
-    Player p = Bukkit.getPlayer(playerName);
+  /**
+   * Gets whether there is a player online with the exact given name (not case sensitive).
+   * 
+   * @param name The name to search with.
+   * @return <code>true</code> if the player is currently online.
+   */
+  public static boolean isPlayerOnline(String name) {
+    Player p = Bukkit.getPlayerExact(name);
     if (p == null || !p.isOnline()) {
       return false;
     }
