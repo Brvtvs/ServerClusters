@@ -81,6 +81,15 @@ public class PlayerRelocator implements Subscriber {
     playerAttempts = new ConcurrentHashMap<Integer, PlayerRelocationAttempt>();
   }
 
+  /**
+   * Stops this from handling any more relocations and kills its connections. Cannot be reversed.
+   */
+  public void destroy() {
+    messager.unsubscribe(responseChannel, this);
+    messager.unsubscribe(requestChannel, this);
+    threadPool.shutdown();
+  }
+
   public ListenableFuture<Boolean> sendPlayers(String clusterId, ServerSelectionMode mode,
       Set<UUID> players) throws IllegalArgumentException {
     if (clusterId == null || clusterId.equals("")) {
@@ -288,7 +297,10 @@ public class PlayerRelocator implements Subscriber {
         try {
           Thread.sleep(WAIT_INTERVAL);
         } catch (InterruptedException e) {
-          System.out.println("[ServerClusters] A response timeout thread was interrupted.");
+          System.out
+              .println("[ServerClusters] Interruption on a response timeout thread. Returning false...");
+          e.printStackTrace();
+          complete(false);
         }
         timePassed += WAIT_INTERVAL;
       }
@@ -406,7 +418,10 @@ public class PlayerRelocator implements Subscriber {
           try {
             Thread.sleep(WAIT_INTERVAL);
           } catch (Exception e) {
-            System.out.println("[ServerClusters] A response timeout thread was interrupted.");
+            System.out
+                .println("[ServerClusters] Interruption on a response timeout thread. Returning false...");
+            e.printStackTrace();
+            complete(false);
           }
           timeWaited += WAIT_INTERVAL;
           if (wakeUp) {
@@ -435,6 +450,7 @@ public class PlayerRelocator implements Subscriber {
 
     private void complete(boolean successful) {
       complete = true;
+      wakeUp = true;
       clusterAttempts.remove(id);
       callback.set(successful);
     }

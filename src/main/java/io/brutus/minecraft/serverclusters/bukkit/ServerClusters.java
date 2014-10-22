@@ -183,6 +183,8 @@ public class ServerClusters implements ServerClustersAPI {
 
   void onDisable() {
     heartbeats.destroy();
+    relocator.destroy();
+    singleton = null;
   }
 
   private Set<UUID> sanitizePlayers(UUID[] players) throws IllegalArgumentException {

@@ -62,7 +62,8 @@ public class HeartbeatMessager implements Subscriber {
   }
 
   /**
-   * Stops this from sending/receiving any more heartbeats. Cannot be reversed.
+   * Stops this from sending/receiving any more heartbeats and kills its connections. Cannot be
+   * reversed.
    */
   public void destroy() {
     messager.unsubscribe(heartbeatChannel, this);
@@ -158,7 +159,9 @@ public class HeartbeatMessager implements Subscriber {
             try {
               Thread.sleep(checkInInterval);
             } catch (InterruptedException e) {
-              System.out.println("[ServerClusters] The heartbeat thread was interrupted");
+              System.out.println("[ServerClusters] The heartbeat thread was interrupted.");
+              e.printStackTrace();
+              destroy();
             }
             timePassed += checkInInterval;
           }
