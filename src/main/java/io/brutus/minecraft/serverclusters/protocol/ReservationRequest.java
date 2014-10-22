@@ -1,10 +1,10 @@
 package io.brutus.minecraft.serverclusters.protocol;
 
+import io.brutus.minecraft.serverclusters.protocol.serialization.SerializationUtils;
+
 import java.io.Serializable;
 import java.util.Set;
 import java.util.UUID;
-
-import org.apache.commons.lang.SerializationUtils;
 
 /**
  * Protocol for requesting a reservation on a number of slots on a connected server.

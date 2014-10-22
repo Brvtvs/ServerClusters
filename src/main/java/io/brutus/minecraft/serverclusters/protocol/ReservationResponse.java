@@ -1,8 +1,8 @@
 package io.brutus.minecraft.serverclusters.protocol;
 
-import java.io.Serializable;
+import io.brutus.minecraft.serverclusters.protocol.serialization.SerializationUtils;
 
-import org.apache.commons.lang.SerializationUtils;
+import java.io.Serializable;
 
 /**
  * Protocol for answering a request to reserve a set of player slots on a connected server.
