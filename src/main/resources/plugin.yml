@@ -8,3 +8,4 @@ commands:
     networkstatus:
         permission: serverclusters.commands.networkstatus
         permission-message: Unknown command. Please try again.
+        aliases: [ns]
