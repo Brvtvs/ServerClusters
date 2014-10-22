@@ -1,10 +1,8 @@
 package io.brutus.minecraft.serverclusters.bukkit;
 
-import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
-import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 
@@ -183,32 +181,6 @@ public class BukkitSlotManager implements SlotManager, Listener, ExpirationListe
         future.set(true);
         future = null;
       }
-    }
-  }
-
-
-  // UNIT TEST
-  public static void main(String[] args) {
-    BukkitSlotManager sm = new BukkitSlotManager(null, 4, 2000, false);
-    sm.onPlayerJoin(null);
-    sm.onPlayerJoin(null);
-    Set<UUID> players = new HashSet<UUID>();
-    players.add(UUID.randomUUID());
-    players.add(UUID.randomUUID());
-    if (sm.getReservation(players)) {
-      System.out.println("got reservations for " + players.size() + " players");
-    }
-    sm.onPlayerJoin(null);
-
-    final ListenableFuture<Boolean> future = sm.setTotalSlots(1);
-    System.out.println("Set total slots to 1");
-
-    try {
-      System.out.println("The future is now! Its value is: " + future.get());
-    } catch (InterruptedException e) {
-      e.printStackTrace();
-    } catch (ExecutionException e) {
-      e.printStackTrace();
     }
   }
 
