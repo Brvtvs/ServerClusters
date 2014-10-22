@@ -44,7 +44,8 @@ public class PlayerRelocator implements Subscriber {
 
   private final ExecutorService threadPool;
   private final AtomicInteger requestCounter;
-  private final Map<Integer, PlayerRelocationAttempt> attempts;
+  private final Map<Integer, ClusterRelocationAttempt> clusterAttempts;
+  private final Map<Integer, PlayerRelocationAttempt> playerAttempts;
 
   public PlayerRelocator(ServerClustersConfig config, NetworkStatus network, SlotManager slotManager)
       throws IllegalArgumentException {
@@ -75,8 +76,9 @@ public class PlayerRelocator implements Subscriber {
     messager.subscribe(requestChannel, this);
 
     threadPool = Executors.newCachedThreadPool();
-    requestCounter = new AtomicInteger();
-    attempts = new ConcurrentHashMap<Integer, PlayerRelocationAttempt>();
+    requestCounter = new AtomicInteger(Integer.MIN_VALUE);
+    clusterAttempts = new ConcurrentHashMap<Integer, ClusterRelocationAttempt>();
+    playerAttempts = new ConcurrentHashMap<Integer, PlayerRelocationAttempt>();
   }
 
   public ListenableFuture<Boolean> sendPlayers(String clusterId, ServerSelectionMode mode,
@@ -88,8 +90,33 @@ public class PlayerRelocator implements Subscriber {
       throw new IllegalArgumentException("must have at least one player");
     }
 
-    PlayerRelocationAttempt attempt = new PlayerRelocationAttempt(clusterId, mode, players);
-    attempts.put(attempt.getId(), attempt);
+    ClusterRelocationAttempt attempt = new ClusterRelocationAttempt(clusterId, mode, players);
+    return attempt.start();
+  }
+
+  public ListenableFuture<Boolean> sendPlayersToPlayer(UUID targetPlayerId, Set<UUID> players)
+      throws IllegalArgumentException {
+    if (targetPlayerId == null) {
+      throw new IllegalArgumentException("player id cannot be null");
+    }
+    if (players == null || players.isEmpty()) {
+      throw new IllegalArgumentException("must have at least one player");
+    }
+
+    PlayerRelocationAttempt attempt = new PlayerRelocationAttempt(targetPlayerId, null, players);
+    return attempt.start();
+  }
+
+  public ListenableFuture<Boolean> sendPlayersToPlayer(String targetPlayerName, Set<UUID> players)
+      throws IllegalArgumentException {
+    if (targetPlayerName == null || targetPlayerName.equals("")) {
+      throw new IllegalArgumentException("player name cannot be null or empty");
+    }
+    if (players == null || players.isEmpty()) {
+      throw new IllegalArgumentException("must have at least one player");
+    }
+
+    PlayerRelocationAttempt attempt = new PlayerRelocationAttempt(null, targetPlayerName, players);
     return attempt.start();
   }
 
@@ -192,19 +219,119 @@ public class PlayerRelocator implements Subscriber {
       return;
     }
 
-    PlayerRelocationAttempt attempt = attempts.get(rr.getRequestId());
-    if (attempt == null) {
-      return;
+    ClusterRelocationAttempt clusterAttempt = clusterAttempts.get(rr.getRequestId());
+    if (clusterAttempt != null) {
+      clusterAttempt.onResponse(rr);
     }
 
-    attempt.onResponse(rr);
+    PlayerRelocationAttempt playerAttempt = playerAttempts.get(rr.getRequestId());
+    if (playerAttempt != null) {
+      playerAttempt.onResponse(rr);
+    }
   }
 
   /**
-   * Private helper runnable class that attempts to get a reservation on a destination instances for
-   * a player or group of players.
+   * Private helper runnable class that attempts to get a reservation on the server of a given
+   * player.
+   * <p>
+   * Defines the behavior of sending the request, waiting for the response, reacting to the
+   * response, timeouts, etc.
    */
   private class PlayerRelocationAttempt implements Runnable {
+
+    private static final long WAIT_INTERVAL = 50;
+
+    private final int id;
+    private final SettableFuture<Boolean> callback;
+
+    private final Set<UUID> players;
+    private final UUID targetId;
+    private final String targetName;
+
+    private volatile boolean complete;
+
+    private PlayerRelocationAttempt(UUID targetId, String targetName, Set<UUID> players) {
+      if (targetId == null && (targetName == null || targetName.equals(""))) {
+        throw new IllegalArgumentException("must have either a target id or a target name");
+      }
+      this.id = requestCounter.getAndIncrement();
+      this.players = players;
+      this.targetId = targetId;
+      this.targetName = targetName;
+      this.callback = SettableFuture.create();
+
+      playerAttempts.put(id, this);
+    }
+
+    @Override
+    public void run() {
+
+      // TODO debug
+      System.out.println("[ServerClusters] Sending a reservation request message of id " + id
+          + " to the server of player (UUID:  " + targetId + ", name: " + targetName + ") for "
+          + players.size() + " players.");
+
+      if (targetId != null) {
+        messager.publish(requestChannel,
+            ReservationRequest.createMessageToPlayer(targetId, thisServerId, id, players));
+      } else {
+        messager.publish(requestChannel,
+            ReservationRequest.createMessageToPlayer(targetName, thisServerId, id, players));
+      }
+
+      long timePassed = 0;
+      while (!complete) {
+        if (timePassed > responseTimeout) {
+          complete(false);
+          break;
+        }
+        try {
+          Thread.sleep(WAIT_INTERVAL);
+        } catch (InterruptedException e) {
+          System.out.println("[ServerClusters] A response timeout thread was interrupted.");
+        }
+        timePassed += WAIT_INTERVAL;
+      }
+    }
+
+    private void onResponse(ReservationResponse response) {
+
+      // TODO debug
+      System.out.println("[ServerClusters] Received reservation response of id "
+          + response.getRequestId() + " from " + response.getRespondingServer() + ". Approved: "
+          + response.isApproved());
+
+      if (response.isApproved()) {
+        for (UUID playerId : players) {
+          ServerUtil.sendPlayer(playerId, response.getRespondingServer());
+        }
+        complete(true);
+      } else {
+        complete(false);
+      }
+    }
+
+    private void complete(boolean successful) {
+      complete = true;
+      clusterAttempts.remove(id);
+      callback.set(successful);
+    }
+
+    private ListenableFuture<Boolean> start() {
+      threadPool.execute(this);
+      return this.callback;
+    }
+
+  }
+
+  /**
+   * Private helper runnable class that attempts to get a reservation on an instance of the
+   * destination cluster for a player or group of players.
+   * <p>
+   * Defines the behavior of sending the request, waiting for the response, reacting to the
+   * response, timeouts, etc.
+   */
+  private class ClusterRelocationAttempt implements Runnable {
 
     private static final int MAX_TRIES = 20; // for sanity: does not try forever.
     private static final long WAIT_INTERVAL = 50;
@@ -222,7 +349,7 @@ public class PlayerRelocator implements Subscriber {
     private volatile boolean wakeUp;
     private volatile boolean complete;
 
-    private PlayerRelocationAttempt(String clusterId, ServerSelectionMode mode, Set<UUID> players) {
+    private ClusterRelocationAttempt(String clusterId, ServerSelectionMode mode, Set<UUID> players) {
       this.id = requestCounter.getAndIncrement();
       this.clusterId = clusterId;
       this.mode = mode;
@@ -230,6 +357,8 @@ public class PlayerRelocator implements Subscriber {
       this.callback = SettableFuture.create();
 
       this.serversTried = new HashSet<String>();
+
+      clusterAttempts.put(id, this);
     }
 
     @Override
@@ -277,7 +406,7 @@ public class PlayerRelocator implements Subscriber {
           try {
             Thread.sleep(WAIT_INTERVAL);
           } catch (Exception e) {
-            System.out.println("[ServerClusters] The response timeout thread was interrupted.");
+            System.out.println("[ServerClusters] A response timeout thread was interrupted.");
           }
           timeWaited += WAIT_INTERVAL;
           if (wakeUp) {
@@ -306,17 +435,13 @@ public class PlayerRelocator implements Subscriber {
 
     private void complete(boolean successful) {
       complete = true;
-      attempts.remove(this);
+      clusterAttempts.remove(id);
       callback.set(successful);
     }
 
     private ListenableFuture<Boolean> start() {
       threadPool.execute(this);
       return this.callback;
-    }
-
-    private int getId() {
-      return id;
     }
 
   }

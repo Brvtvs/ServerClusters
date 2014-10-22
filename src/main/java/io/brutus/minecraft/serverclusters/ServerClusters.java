@@ -112,17 +112,13 @@ public class ServerClusters implements ServerClustersAPI {
   }
 
   @Override
-  public ListenableFuture<Boolean> sendPlayersToCluster(String clusterId, UUID... players)
+  public ListenableFuture<Boolean> sendPlayersToCluster(String clusterId, UUID... playersToSend)
       throws IllegalArgumentException {
-    if (clusterId == null || clusterId.equals("")) {
-      throw new IllegalArgumentException("cluster id cannot be null or empty");
-    }
-    if (players == null || players.length < 1) {
-      throw new IllegalArgumentException("players cannot be null or empty");
-    }
 
-    Set<UUID> pSet = sanitizePlayers(players);
+    Set<UUID> pSet = sanitizePlayers(playersToSend);
 
+    // tolerates and ignores offline players, because it is not really an illegal argument that
+    // indicates a logical issue; it is just likely references to players who have since logged off.
     if (pSet.isEmpty()) {
       SettableFuture<Boolean> ret = SettableFuture.create();
       ret.set(true);
@@ -143,15 +139,35 @@ public class ServerClusters implements ServerClustersAPI {
   @Override
   public ListenableFuture<Boolean> sendPlayersToPlayer(UUID targetPlayerId, UUID... playersToSend)
       throws IllegalArgumentException {
-    // TODO Auto-generated method stub
-    return null;
+
+    Set<UUID> pSet = sanitizePlayers(playersToSend);
+
+    // tolerates and ignores offline players, because it is not really an illegal argument that
+    // indicates a logical issue; it is just likely references to players who have since logged off.
+    if (pSet.isEmpty()) {
+      SettableFuture<Boolean> ret = SettableFuture.create();
+      ret.set(true);
+      return ret;
+    }
+
+    return relocator.sendPlayersToPlayer(targetPlayerId, pSet);
   }
 
   @Override
   public ListenableFuture<Boolean> sendPlayersToPlayer(String targetPlayerName,
       UUID... playersToSend) throws IllegalArgumentException {
-    // TODO Auto-generated method stub
-    return null;
+
+    Set<UUID> pSet = sanitizePlayers(playersToSend);
+
+    // tolerates and ignores offline players, because it is not really an illegal argument that
+    // indicates a logical issue; it is just likely references to players who have since logged off.
+    if (pSet.isEmpty()) {
+      SettableFuture<Boolean> ret = SettableFuture.create();
+      ret.set(true);
+      return ret;
+    }
+
+    return relocator.sendPlayersToPlayer(targetPlayerName, pSet);
   }
 
   /**
@@ -163,7 +179,11 @@ public class ServerClusters implements ServerClustersAPI {
     return plugin;
   }
 
-  private Set<UUID> sanitizePlayers(UUID[] players) {
+  private Set<UUID> sanitizePlayers(UUID[] players) throws IllegalArgumentException {
+    if (players == null || players.length < 1) {
+      throw new IllegalArgumentException("players cannot be null or empty");
+    }
+
     Set<UUID> pSet = new HashSet<UUID>();
     for (UUID p : players) {
       if (p != null && plugin.getServer().getPlayer(p).isOnline()) {
