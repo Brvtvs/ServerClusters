@@ -397,6 +397,7 @@ public class PlayerRelocator implements Subscriber {
         for (String server : servers) { // does not retry
           if (!serversTried.contains(server)) {
             currentServer = server;
+            serversTried.add(currentServer);
             foundNew = true;
             break;
           }
@@ -429,6 +430,9 @@ public class PlayerRelocator implements Subscriber {
             break;
           }
         }
+      }
+      if (!complete) {
+        complete(false);
       }
     }
 
