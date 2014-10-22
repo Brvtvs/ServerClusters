@@ -1,27 +1,21 @@
 package io.brutus.minecraft.serverclusters.protocol;
 
-import java.nio.ByteBuffer;
-import java.nio.charset.Charset;
-import java.util.HashSet;
+import java.io.Serializable;
 import java.util.Set;
 import java.util.UUID;
+
+import org.apache.commons.lang.SerializationUtils;
 
 /**
  * Protocol for requesting a reservation on a number of slots on a connected server.
  */
-public class ReservationRequest {
+public abstract class ReservationRequest implements Serializable {
 
-  /*
-   * Protocol: [int targetIdLength, byte[] targetId, int requesterIdLength, byte[] requesterId, int
-   * requestId, int numPlayers, UUID... players]
-   */
-
-  private static final Charset CHARSET = Charset.forName("UTF-8");
-  // 3 ints, for the request id, the number of players, and 2 string id lengths.
-  private static final int BASE_LENGTH = ((Integer.SIZE / 8) * 4);
+  private static final long serialVersionUID = 8143141308175013438L;
 
   /**
-   * Creates a serialized <code>byte</code> array of a reservation request.
+   * Creates a serialized <code>byte</code> array of a reservation request targeted at a given
+   * server.
    * 
    * @param targetServer The id of the server to request slots from.
    * @param requestingServer The id of the server making the request.
@@ -34,40 +28,58 @@ public class ReservationRequest {
    * @throws IllegalArgumentException on a <code>null</code> or empty target or requesting server
    *         id, or on less than <code>1</code> player being passed in.
    */
-  public static byte[] createMessage(String targetServer, String requestingServer, int requestId,
-      Set<UUID> players) throws IllegalArgumentException {
-    if (targetServer == null || targetServer.equals("") || requestingServer == null
-        || requestingServer.equals("")) {
-      throw new IllegalArgumentException("target and requesting server ids cannot be null or empty");
-    }
-    if (players == null || players.isEmpty()) {
-      throw new IllegalArgumentException("must have at least one player");
-    }
+  public static byte[] createMessageToServer(String targetServer, String requestingServer,
+      int requestId, Set<UUID> players) throws IllegalArgumentException {
 
-    byte[] targetBytes = targetServer.getBytes(CHARSET);
-    byte[] requestingBytes = requestingServer.getBytes(CHARSET);
+    return SerializationUtils.serialize(new ServerIdReservationRequest(targetServer,
+        requestingServer, requestId, players));
 
-    int messageLength =
-        targetBytes.length + requestingBytes.length + (players.size() * (Long.SIZE / 8) * 2)
-            + BASE_LENGTH;
-    ByteBuffer bb = ByteBuffer.allocate(messageLength);
+  }
 
-    bb.putInt(targetBytes.length);
-    bb.put(targetBytes);
+  /**
+   * Creates a serialized <code>byte</code> array of a reservation request targeted at a given
+   * player using their unique id.
+   * 
+   * @param targetPlayerUniqueId The id of the target player.
+   * @param requestingServer The id of the server making the request.
+   * @param requestId A unique identified for this request. The response will reference this request
+   *        in order to make clear what it is responding to. The id should be unique within the
+   *        server sending the request. No definite scheme for defining ids is defined.
+   * @param players The players the requested slots are for.
+   * @return The serialized <code>byte</code> array version of the request. Can be decoded with
+   *         {@link #fromBytes(byte[])}.
+   * @throws IllegalArgumentException on a <code>null</code> parameter or empty requesting server
+   *         id, or on less than <code>1</code> player being passed in.
+   */
+  public static byte[] createMessageToPlayer(UUID targetPlayerUniqueId, String requestingServer,
+      int requestId, Set<UUID> players) throws IllegalArgumentException {
 
-    bb.putInt(requestingBytes.length);
-    bb.put(requestingBytes);
+    return SerializationUtils.serialize(new PlayerUuidReservationRequest(targetPlayerUniqueId,
+        requestingServer, requestId, players));
 
-    bb.putInt(requestId);
+  }
 
-    bb.putInt(players.size());
+  /**
+   * Creates a serialized <code>byte</code> array of a reservation request targeted at a given
+   * player using their name.
+   * 
+   * @param targetPlayerName The name of the target player.
+   * @param requestingServer The id of the server making the request.
+   * @param requestId A unique identified for this request. The response will reference this request
+   *        in order to make clear what it is responding to. The id should be unique within the
+   *        server sending the request. No definite scheme for defining ids is defined.
+   * @param players The players the requested slots are for.
+   * @return The serialized <code>byte</code> array version of the request. Can be decoded with
+   *         {@link #fromBytes(byte[])}.
+   * @throws IllegalArgumentException on a <code>null</code> or empty requesting server id or player
+   *         name, or on less than <code>1</code> player being passed in.
+   */
+  public static byte[] createMessageToPlayer(String targetPlayerName, String requestingServer,
+      int requestId, Set<UUID> players) throws IllegalArgumentException {
 
-    for (UUID uid : players) {
-      bb.putLong(uid.getMostSignificantBits());
-      bb.putLong(uid.getLeastSignificantBits());
-    }
+    return SerializationUtils.serialize(new PlayerNameReservationRequest(targetPlayerName,
+        requestingServer, requestId, players));
 
-    return bb.array();
   }
 
   /**
@@ -75,72 +87,51 @@ public class ReservationRequest {
    * of a request.
    * 
    * @param message The <code>byte</code> array to get a <code>ReservationRequest</code> object for.
-   * @return The decoded request.
+   * @return The decoded request. Its type can be ascertained with {@link #getTargetType()}.
    * @throws IllegalArgumentException on a <code>null</code> or improperly formatted message array,
    *         or on a number of players that is not positive.
    */
   public static ReservationRequest fromBytes(byte[] message) throws IllegalArgumentException {
-    if (message == null || message.length < BASE_LENGTH) {
+    if (message == null || message.length < 1) {
       throw new IllegalArgumentException("message array cannot be null or empty");
     }
-
     try {
-      ByteBuffer bb = ByteBuffer.wrap(message);
-
-      int targetIdLength = bb.getInt();
-      byte[] targetBytes = new byte[targetIdLength];
-      bb.get(targetBytes);
-      String targetServer = new String(targetBytes, CHARSET);
-
-      int requestingIdLength = bb.getInt();
-      byte[] requestingBytes = new byte[requestingIdLength];
-      bb.get(requestingBytes);
-      String requestingServer = new String(requestingBytes, CHARSET);
-
-      int requestId = bb.getInt();
-      int numPlayers = bb.getInt();
-
-      Set<UUID> players = new HashSet<UUID>();
-      for (int i = 0; i < numPlayers; i++) {
-        players.add(new UUID(bb.getLong(), bb.getLong()));
-      }
-
-      return new ReservationRequest(targetServer, requestingServer, requestId, players);
-
+      return (ReservationRequest) SerializationUtils.deserialize(message);
     } catch (Exception e) {
       e.printStackTrace();
       throw new IllegalArgumentException("inproperly formatted reservation request message");
     }
   }
 
-  private final String targetServer;
+  private final TargetType type;
+
   private final String requestingServer;
   private final int requestId;
   private final Set<UUID> players;
 
-  private ReservationRequest(String targetServer, String requestingServer, int requestId,
+  protected ReservationRequest(TargetType type, String requestingServer, int requestId,
       Set<UUID> players) {
-    if (targetServer == null || targetServer.equals("") || requestingServer == null
-        || requestingServer.equals("")) {
-      throw new IllegalArgumentException("server ids cannot be null or empty");
+    if (type == null || requestingServer == null || requestingServer.equals("")) {
+      throw new IllegalArgumentException("type and server id cannot be null or empty");
     }
     if (players == null || players.isEmpty()) {
       throw new IllegalArgumentException("request must have at least one player");
     }
 
-    this.targetServer = targetServer;
+    this.type = type;
+
     this.requestingServer = requestingServer;
     this.requestId = requestId;
     this.players = players;
   }
 
   /**
-   * Gets the id of the server that the requester is trying to reserve slots on.
+   * Gets the type of this request. Can be use to cast and interpret the this request's target.
    * 
-   * @return The target server's string id.
+   * @return This request's target.
    */
-  public String getTargetServer() {
-    return targetServer;
+  public TargetType getTargetType() {
+    return type;
   }
 
   /**
@@ -181,6 +172,13 @@ public class ReservationRequest {
    */
   public Set<UUID> getPlayers() {
     return players;
+  }
+
+  /**
+   * The different supported types of reservation request targets.
+   */
+  public enum TargetType {
+    SERVER_ID(), PLAYER_UUID(), PLAYER_NAME();
   }
 
 }

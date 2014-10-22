@@ -2,8 +2,12 @@ package io.brutus.minecraft.serverclusters;
 
 import io.brutus.minecraft.pubsub.PubSub;
 import io.brutus.minecraft.serverclusters.bukkit.ServerUtil;
+import io.brutus.minecraft.serverclusters.protocol.PlayerNameReservationRequest;
+import io.brutus.minecraft.serverclusters.protocol.PlayerUuidReservationRequest;
 import io.brutus.minecraft.serverclusters.protocol.ReservationRequest;
+import io.brutus.minecraft.serverclusters.protocol.ReservationRequest.TargetType;
 import io.brutus.minecraft.serverclusters.protocol.ReservationResponse;
+import io.brutus.minecraft.serverclusters.protocol.ServerIdReservationRequest;
 import io.brutus.minecraft.serverclusters.selection.ServerSelectionMode;
 import io.brutus.networking.pubsubmessager.PubSubMessager;
 import io.brutus.networking.pubsubmessager.Subscriber;
@@ -75,43 +79,6 @@ public class PlayerRelocator implements Subscriber {
     attempts = new ConcurrentHashMap<Integer, PlayerRelocationAttempt>();
   }
 
-  /**
-   * Makes an asynchronous attempt to send players to an instance of the given cluster together.
-   * <p>
-   * Players will be sent as a group to the same instance of the cluster. Only servers with enough
-   * slots for every player will be considered. If the players can be split up, call this method
-   * separately for each player. Sending players as a group unnecessarily is less efficient, less
-   * optimal, and more likely to fail.
-   * <p>
-   * Finds the best server in the cluster based on its configuration and the number of players being
-   * sent.
-   * <p>
-   * Players will be relocated asynchronously (not immediately). It will take some time before an
-   * instance is found and approved and the players are relocated to it. During that time, the
-   * players will still be able to run around, play, and interact with this server they are
-   * currently on.
-   * <p>
-   * Once this process has started, it cannot be stopped. If multiple requests are made for the same
-   * player, it may cause strange behavior. They might be bounced around between servers and no
-   * guarantee is made about what order requests would be finished in. This also applies for other
-   * methods of server relocation not through this method.
-   * <p>
-   * Can fail. It is possible no instances will be found, or that this method could fail for any of
-   * a number of other reasons.
-   * <p>
-   * Ignores attempts to send players who are not currently online this server.
-   * 
-   * @param clusterId The id of the cluster to send the players to.
-   * @param mode The mode with which to order the available servers by quality.
-   * @param players The player or players to send to an instance of the server cluster.
-   * @return The asynchronous, future result of this attempt to relocate players. Returns a value
-   *         when the request finishes. <code>true</code> if the relocation is successful (does not
-   *         guarantee the players make it to their destination, but does successfully find a server
-   *         and send them there).<code>false</code> if the relocation fails, such as if no valid
-   *         servers exist for the given cluster.
-   * @throws IllegalArgumentException on a <code>null</code> parameter, an empty cluster id, an
-   *         empty set, or a cluster id that is not configured.
-   */
   public ListenableFuture<Boolean> sendPlayers(String clusterId, ServerSelectionMode mode,
       Set<UUID> players) throws IllegalArgumentException {
     if (clusterId == null || clusterId.equals("")) {
@@ -148,9 +115,49 @@ public class PlayerRelocator implements Subscriber {
       return;
     }
 
-    if (!rr.getTargetServer().equals(thisServerId)) { // not for this server
-      return;
+    TargetType type = rr.getTargetType();
+
+    if (type == TargetType.SERVER_ID) { // targeted by server id
+      ServerIdReservationRequest serverRequest = (ServerIdReservationRequest) rr;
+
+      if (serverRequest.getTargetServer().equals(thisServerId)) { // for this server
+        tryReservation(serverRequest);
+      }
+
+    } else if (type == TargetType.PLAYER_UUID) { // targeted by player id
+      final PlayerUuidReservationRequest uidRequest = (PlayerUuidReservationRequest) rr;
+
+      // syncs to main thread before accessing Minecraft server API
+      ServerUtil.sync(new Runnable() {
+        @Override
+        public void run() {
+          // if the player is online this server, this request is for this server
+          if (ServerUtil.isPlayerOnline(uidRequest.getTargetPlayerUniqueId())) {
+            tryReservation(uidRequest);
+          }
+        }
+      });
+
+
+    } else if (type == TargetType.PLAYER_NAME) { // targeted by player name
+      final PlayerNameReservationRequest nameRequest = (PlayerNameReservationRequest) rr;
+
+      // syncs to main thread before accessing Minecraft server API
+      ServerUtil.sync(new Runnable() {
+        @Override
+        public void run() {
+          // if the player is online this server, this request is for this server
+          if (ServerUtil.isPlayerOnline(nameRequest.getTargetPlayerName())) {
+            tryReservation(nameRequest);
+          }
+        }
+      });
+
     }
+    // if no conditions are met, the incoming request is not meant for this server.
+  }
+
+  private void tryReservation(ReservationRequest rr) {
 
     // TODO debug
     System.out.println("[ServerClusters] Received reservation request of id " + rr.getRequestId()
@@ -166,6 +173,7 @@ public class PlayerRelocator implements Subscriber {
         + rr.getRequestId() + " to " + rr.getRequestingServer() + ". Approved: " + reserved);
 
     messager.publish(responseChannel, response);
+
   }
 
   private void onResponseMessage(byte[] message) {
@@ -262,7 +270,7 @@ public class PlayerRelocator implements Subscriber {
             + " to " + currentServer + " for " + players.size() + " players.");
 
         messager.publish(requestChannel,
-            ReservationRequest.createMessage(currentServer, thisServerId, id, players));
+            ReservationRequest.createMessageToServer(currentServer, thisServerId, id, players));
 
         long timeWaited = 0;
         while (timeWaited < responseTimeout) {

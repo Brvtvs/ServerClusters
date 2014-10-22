@@ -1,21 +1,15 @@
 package io.brutus.minecraft.serverclusters.protocol;
 
-import java.nio.ByteBuffer;
-import java.nio.charset.Charset;
+import java.io.Serializable;
+
+import org.apache.commons.lang.SerializationUtils;
 
 /**
  * Protocol for answering a request to reserve a set of player slots on a connected server.
  */
-public class ReservationResponse {
+public class ReservationResponse implements Serializable {
 
-  /*
-   * Protocol: [int targetIdLength, byte[] targetId, int respondingIdLength, byte[] respondingId,
-   * int requestId, boolean approved]
-   */
-
-  private static final Charset CHARSET = Charset.forName("UTF-8");
-  // 2 string length definitions, 1 request id, and 1 byte for a boolean value
-  private static final int BASE_LENGTH = ((Integer.SIZE / 8) * 3) + Byte.SIZE / 8;
+  private static final long serialVersionUID = -5346588569921043743L;
 
   /**
    * Creates a serialized <code>byte</code> array of a reservation response.
@@ -34,31 +28,10 @@ public class ReservationResponse {
    */
   public static byte[] createMessage(String targetServer, String respondingServer, int requestId,
       boolean approved) throws IllegalArgumentException {
-    if (targetServer == null || targetServer.equals("") || respondingServer == null
-        || respondingServer.equals("")) {
-      throw new IllegalArgumentException("server ids cannot be null or empty");
-    }
 
-    byte[] targetBytes = targetServer.getBytes(CHARSET);
-    byte[] respondingBytes = respondingServer.getBytes(CHARSET);
+    return SerializationUtils.serialize(new ReservationResponse(targetServer, respondingServer,
+        requestId, approved));
 
-    ByteBuffer bb = ByteBuffer.allocate(targetBytes.length + respondingBytes.length + BASE_LENGTH);
-
-    bb.putInt(targetBytes.length);
-    bb.put(targetBytes);
-
-    bb.putInt(respondingBytes.length);
-    bb.put(respondingBytes);
-
-    bb.putInt(requestId);
-
-    if (approved) {
-      bb.put((byte) 1);
-    } else {
-      bb.put((byte) 0);
-    }
-
-    return bb.array();
   }
 
   /**
@@ -71,33 +44,12 @@ public class ReservationResponse {
    * @throws IllegalArgumentException on a <code>null</code> or incorrectly formatted message array.
    */
   public static ReservationResponse fromBytes(byte[] message) throws IllegalArgumentException {
-    if (message == null || message.length < BASE_LENGTH) {
-      throw new IllegalArgumentException("improperly formatted reservation response message array");
+    if (message == null || message.length < 1) {
+      throw new IllegalArgumentException("message array cannot be null or empty");
     }
 
     try {
-      ByteBuffer bb = ByteBuffer.wrap(message);
-
-      int targetIdLength = bb.getInt();
-      byte[] targetBytes = new byte[targetIdLength];
-      bb.get(targetBytes);
-      String targetServer = new String(targetBytes, CHARSET);
-
-      int respondingIdLength = bb.getInt();
-      byte[] respondingBytes = new byte[respondingIdLength];
-      bb.get(respondingBytes);
-      String respondingServer = new String(respondingBytes, CHARSET);
-
-      int requestId = bb.getInt();
-
-      byte approvedByte = bb.get();
-      boolean approved = false;
-      if (approvedByte == 1) {
-        approved = true;
-      }
-
-      return new ReservationResponse(targetServer, respondingServer, requestId, approved);
-
+      return (ReservationResponse) SerializationUtils.deserialize(message);
     } catch (Exception e) {
       e.printStackTrace();
       throw new IllegalArgumentException("improperly formatted reservation response message array");
@@ -158,6 +110,5 @@ public class ReservationResponse {
   public boolean isApproved() {
     return approved;
   }
-
 
 }

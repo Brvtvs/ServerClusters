@@ -71,6 +71,22 @@ public class ServerUtil {
     });
   }
 
+  public static boolean isPlayerOnline(UUID player) {
+    Player p = Bukkit.getPlayer(player);
+    if (p == null || !p.isOnline()) {
+      return false;
+    }
+    return true;
+  }
+
+  public static boolean isPlayerOnline(String playerName) {
+    Player p = Bukkit.getPlayer(playerName);
+    if (p == null || !p.isOnline()) {
+      return false;
+    }
+    return true;
+  }
+
   /**
    * Synchronizes a task to this server's main thread.
    * 
