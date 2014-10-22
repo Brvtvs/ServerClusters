@@ -1,7 +1,5 @@
 package io.brutus.minecraft.serverclusters.bukkit;
 
-import io.brutus.minecraft.serverclusters.ServerClusters;
-
 import org.bukkit.plugin.java.JavaPlugin;
 
 /**

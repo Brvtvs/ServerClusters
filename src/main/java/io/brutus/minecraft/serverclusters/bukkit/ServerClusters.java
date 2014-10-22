@@ -1,13 +1,15 @@
-package io.brutus.minecraft.serverclusters;
+package io.brutus.minecraft.serverclusters.bukkit;
 
 import java.util.HashSet;
 import java.util.Set;
 import java.util.UUID;
 
-import io.brutus.minecraft.serverclusters.bukkit.BukkitSlotManager;
-import io.brutus.minecraft.serverclusters.bukkit.NetworkStatusCommand;
-import io.brutus.minecraft.serverclusters.bukkit.PluginConfig;
-import io.brutus.minecraft.serverclusters.bukkit.PluginMain;
+import io.brutus.minecraft.serverclusters.HeartbeatMessager;
+import io.brutus.minecraft.serverclusters.NetworkStatus;
+import io.brutus.minecraft.serverclusters.PlayerRelocator;
+import io.brutus.minecraft.serverclusters.ServerClustersAPI;
+import io.brutus.minecraft.serverclusters.ServerClustersConfig;
+import io.brutus.minecraft.serverclusters.SlotManager;
 import io.brutus.minecraft.serverclusters.cache.NetworkCache;
 import io.brutus.minecraft.serverclusters.selection.ServerSelectionMode;
 
