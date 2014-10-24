@@ -18,27 +18,23 @@ public interface ServerClustersAPI {
   String getServerId();
 
   /**
-   * Gets the self-proclaimed id of the cluster this server is a part of.
+   * Gets the id of the cluster this server is a part of.
    * 
    * @return The id of this server's cluster.
    */
   String getClusterId();
 
   /**
-   * Gets the current number of open slots on this server.
-   * <p>
-   * This number is the current total number of slots minus the number of players online and the
-   * number of players in the process of connecting to this server.
+   * Gets the current number of open player slots on this server.
    * 
-   * @return The number of open slots on this server.
+   * @return The number of open slots for players on this server.
    */
   int getOpenSlots();
 
   /**
    * Gets the current total number of player slots on this game server.
    * <p>
-   * This number can change over time and without affecting online players. As such, the total
-   * number of slots does not reflect how many players are online.
+   * Can be less than the number of players currently online.
    * 
    * @return The currently set total number of player slots.
    */
