@@ -10,7 +10,6 @@ import net.jodah.expiringmap.ExpiringMap;
 import net.jodah.expiringmap.ExpiringMap.ExpirationListener;
 import net.jodah.expiringmap.ExpiringMap.ExpirationPolicy;
 
-import org.bukkit.Bukkit;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.EventPriority;
 import org.bukkit.event.Listener;
@@ -54,7 +53,7 @@ public class BukkitSlotManager implements SlotManager, Listener, ExpirationListe
     this.plugin = plugin;
     this.strictReservations = strictReservations;
     this.totalSlots = totalSlots;
-    this.onlinePlayers = new AtomicInteger(plugin.getServer().getOnlinePlayers().length);
+    this.onlinePlayers = new AtomicInteger(plugin.getServer().getOnlinePlayers().size());
 
     this.reservations =
         ExpiringMap.builder().expirationPolicy(ExpirationPolicy.CREATED)
@@ -147,28 +146,24 @@ public class BukkitSlotManager implements SlotManager, Listener, ExpirationListe
 
   @EventHandler(priority = EventPriority.MONITOR)
   public void onPlayerJoin(PlayerJoinEvent event) {
-    onlinePlayers.incrementAndGet();
-    checkFuture();
-
-    // TODO debug
-    int bukkitPlayers = plugin.getServer().getOnlinePlayers().length;
-    if (onlinePlayers.get() != bukkitPlayers) {
-      Bukkit.broadcastMessage("WARNING: the manually tracked onlinePlayers (" + onlinePlayers.get()
-          + ") is out of sync with the actual number of online players (" + bukkitPlayers + ")");
-    }
+    plugin.getServer().getScheduler().runTaskLater(plugin, new Runnable() {
+      @Override
+      public void run() {
+        onlinePlayers.set(plugin.getServer().getOnlinePlayers().size());
+        checkFuture();
+      }
+    }, 1L);
   }
 
   @EventHandler(priority = EventPriority.MONITOR)
   public void onPlayerQuit(PlayerQuitEvent event) {
-    onlinePlayers.decrementAndGet();
-    checkFuture();
-
-    // TODO debug
-    int bukkitPlayers = plugin.getServer().getOnlinePlayers().length;
-    if (onlinePlayers.get() != bukkitPlayers) {
-      Bukkit.broadcastMessage("WARNING: the manually tracked onlinePlayers (" + onlinePlayers.get()
-          + ") is out of sync with the actual number of online players (" + bukkitPlayers + ")");
-    }
+    plugin.getServer().getScheduler().runTaskLater(plugin, new Runnable() {
+      @Override
+      public void run() {
+        onlinePlayers.set(plugin.getServer().getOnlinePlayers().size());
+        checkFuture();
+      }
+    }, 1L);
   }
 
   /**
