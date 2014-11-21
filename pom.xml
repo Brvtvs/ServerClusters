@@ -11,6 +11,17 @@
 		<project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
 	</properties>
 
+	<repositories>
+		<repository>
+			<id>pubsub-repo</id>
+			<url>file://${basedir}/../pubsub</url>
+		</repository>
+		<repository>
+			<id>spigot-repo</id>
+			<url>http://repo.md-5.net/content/groups/public/</url>
+		</repository>
+	</repositories>
+
 	<dependencies>
 		<dependency>
 			<groupId>net.jodah</groupId>
@@ -31,17 +42,6 @@
 			<scope>provided</scope>
 		</dependency>
 	</dependencies>
-
-	<repositories>
-		<repository>
-			<id>pubsub-repo</id>
-			<url>file://${basedir}/../pubsub</url>
-		</repository>
-		<repository>
-			<id>spigot-repo</id>
-			<url>http://repo.md-5.net/content/groups/public/</url>
-		</repository>
-	</repositories>
 
 	<build>
 		<defaultGoal>clean install</defaultGoal>
