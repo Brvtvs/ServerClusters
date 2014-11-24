@@ -76,7 +76,7 @@ public class BukkitSlotManager implements SlotManager, Listener, ExpirationListe
     SettableFuture<Boolean> ret = SettableFuture.create();
 
     // needs to wait for reservations to resolve before finishing.
-    if (totalSlots < onlinePlayers.get() + reservations.size()) {
+    if (totalSlots < onlinePlayers.get() + reservations.size() && reservations.size() > 0) {
       future = ret;
     } else { // else no need to wait; finishes immediately.
       ret.set(true);
