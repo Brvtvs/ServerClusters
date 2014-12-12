@@ -10,8 +10,8 @@ import io.brutus.minecraft.serverclusters.cache.ServerStatus;
 import io.brutus.minecraft.serverclusters.selection.ServerSelectionMode;
 
 /**
- * Periodically attempts send this server's players to a more ideal instance of the same cluster, if
- * one is found.
+ * If enabled, periodically attempts send this server's players to a more ideal instance of the same
+ * cluster, if one is found.
  */
 public class InstanceConsolidator {
 
@@ -112,7 +112,7 @@ public class InstanceConsolidator {
 
         }
       }
-    }.run();
+    }.start();
 
   }
 }
