@@ -19,14 +19,34 @@ this-server:
     
     # The maximum number of players allowed on this server. Other servers will use this in order to 
     # decide when to send players here. This number can be dynamically overwritten via the 
-    # ServerClusters API. This will not overwrite the Minecraft server's official number of slots.
-    # That needs to be edited separately and should be higher than this number. 
+    # ServerClusters API. ServerClusters will enforce this number, but it does not overwrite the 
+    # Minecraft server's vanilla number of slots. The vanilla number of slots needs to be edited 
+    # separately and should ALWAYS be higher than ServerCluster's max slots. 
     default-player-slots: 25
     
     # Whether to kick players who have not reserved a slot when they try to log in to this server, 
     # even if there are slots freely available. Players sent through the ServerClusters API will 
     # almost always have a reservation. Players sent via other means (ex: /server yourserver) will not.
     strict-reservations: false
+    
+    # Whether this server should try to periodically consolidate its players to other instances of
+    # the same cluster. This can help matchmaking and make up for any weird behavior where players 
+    # get stuck on an almost empty instance when they could theoretically be in a match.
+    #
+    # This ONLY works when this server's cluster is using matchmaking for server selection. Otherwise,
+    # this setting is ignored.
+    # 
+    # How it works: This server will periodically look at its cluster, and see if there are any 
+    # instances that have FEWER open slots than this server, but still enough for ALL of this 
+    # server's players. If those requirements are met, this server will attempt to get a reservation
+    # for all of its players on that instance, consolidating the two groups of players into one, 
+    # bigger match.
+    # For example, if server1 has 5/10 players and server2 has 3/10 players, server2 would send all
+    # of its 3 players to server1 so they are not waiting around without enough players to start the
+    # match. If server2 did not do this, then players just joining the cluster would go to server1
+    # and get into a match faster than the players in server2, even though those in server2 have
+    # been waiting longer.
+    attempt-instance-consolidations: false
     
 # -------------------------------------------------------
 # Configuration for how to treat clusters on the network.

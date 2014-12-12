@@ -38,6 +38,15 @@ public interface ServerClustersConfig {
   boolean strictReservations();
 
   /**
+   * Whether this instance should periodically attempt to consolidate its players into another, more
+   * ideal instance.
+   * 
+   * @return <code>true</code> if this server should attempt to consolidate its players into more
+   *         ideal instances of the same cluster.
+   */
+  boolean attemptInstanceConsolidations();
+
+  /**
    * Gets the configured selection mode for a given cluster.
    * 
    * @param clusterId The cluster to get the selection mode for.

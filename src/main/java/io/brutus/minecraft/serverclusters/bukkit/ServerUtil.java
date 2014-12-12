@@ -3,9 +3,13 @@ package io.brutus.minecraft.serverclusters.bukkit;
 import java.io.ByteArrayOutputStream;
 import java.io.DataOutputStream;
 import java.io.IOException;
+import java.util.Collection;
+import java.util.HashSet;
+import java.util.Set;
 import java.util.UUID;
 
 import org.bukkit.Bukkit;
+import org.bukkit.ChatColor;
 import org.bukkit.entity.Player;
 import org.bukkit.plugin.java.JavaPlugin;
 
@@ -91,12 +95,65 @@ public class ServerUtil {
    * @param name The name to search with.
    * @return <code>true</code> if the player is currently online.
    */
+  @SuppressWarnings("deprecation")
   public static boolean isPlayerOnline(String name) {
     Player p = Bukkit.getPlayerExact(name);
     if (p == null || !p.isOnline()) {
       return false;
     }
     return true;
+  }
+
+  /**
+   * Gets a set of the unique ids of all the players on the server.
+   * <p>
+   * This method is NOT thread safe. If you need to run this from a thread other than the server's
+   * main thread, you need to sync it first, such as with {@link #sync(Runnable)}.
+   * 
+   * @return The unique ids of all online players.
+   */
+  public static Set<UUID> getOnlinePlayerIds() {
+    Set<UUID> ret = new HashSet<UUID>();
+
+    if (plugin == null) {
+      getPlugin();
+    }
+
+    for (Player player : plugin.getServer().getOnlinePlayers()) {
+      ret.add(player.getUniqueId());
+    }
+
+    return ret;
+  }
+
+  /**
+   * Sends a message to one or a group of players.
+   * <p>
+   * This method is thread safe and synchronizes to the main thread before the message is sent.
+   * 
+   * @param message The message to send.
+   * @param targets The ids of players to send the messages to.
+   */
+  public static void sendMessage(final String message, Collection<UUID> targets) {
+    if (message == null || message.isEmpty() || targets == null || targets.isEmpty()) {
+      return;
+    }
+    if (plugin == null) {
+      getPlugin();
+    }
+
+    final Set<UUID> players = new HashSet<UUID>(targets);
+    sync(new Runnable() {
+      @Override
+      public void run() {
+        for (UUID uid : players) {
+          Player player = plugin.getServer().getPlayer(uid);
+          if (player != null) {
+            player.sendMessage(ChatColor.RED + message);
+          }
+        }
+      }
+    });
   }
 
   /**

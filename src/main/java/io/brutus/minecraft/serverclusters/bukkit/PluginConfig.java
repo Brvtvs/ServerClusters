@@ -23,6 +23,7 @@ public class PluginConfig implements ServerClustersConfig {
   private String clusterId;
   private int totalSlots;
   private boolean strictReservations;
+  private boolean attemptInstanceConsolidations;
 
   private Map<String, ServerSelectionMode> clusters;
 
@@ -97,6 +98,12 @@ public class PluginConfig implements ServerClustersConfig {
       responseTimeout = timingsSec.getLong("response-timeout");
       reservationTimeout = timingsSec.getLong("reservation-timeout");
 
+
+      ServerSelectionMode thisClustersMode = clusters.get(clusterId);
+      attemptInstanceConsolidations =
+          thisServerSec.getBoolean("attempt-instance-consolidations") && thisClustersMode != null
+              && thisClustersMode == ServerSelectionMode.MATCHMAKING;
+
     } catch (Exception e) {
       plugin
           .getLogger()
@@ -124,6 +131,11 @@ public class PluginConfig implements ServerClustersConfig {
   @Override
   public boolean strictReservations() {
     return strictReservations;
+  }
+
+  @Override
+  public boolean attemptInstanceConsolidations() {
+    return attemptInstanceConsolidations;
   }
 
   @Override
