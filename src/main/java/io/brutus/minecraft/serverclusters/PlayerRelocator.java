@@ -15,6 +15,7 @@ import io.brutus.networking.pubsubmessager.Subscriber;
 
 import java.util.Arrays;
 import java.util.HashSet;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -45,7 +46,7 @@ public class PlayerRelocator implements Subscriber {
 
   private final ExecutorService threadPool;
   private final AtomicInteger requestCounter;
-  private final Map<Integer, ClusterRelocationAttempt> clusterAttempts;
+  private final Map<Integer, ServerGroupRelocationAttempt> clusterAttempts;
   private final Map<Integer, PlayerRelocationAttempt> playerAttempts;
 
   public PlayerRelocator(ServerClustersConfig config, NetworkStatus network, SlotManager slotManager)
@@ -78,7 +79,7 @@ public class PlayerRelocator implements Subscriber {
 
     threadPool = Executors.newCachedThreadPool();
     requestCounter = new AtomicInteger(Integer.MIN_VALUE);
-    clusterAttempts = new ConcurrentHashMap<Integer, ClusterRelocationAttempt>();
+    clusterAttempts = new ConcurrentHashMap<Integer, ServerGroupRelocationAttempt>();
     playerAttempts = new ConcurrentHashMap<Integer, PlayerRelocationAttempt>();
   }
 
@@ -91,7 +92,7 @@ public class PlayerRelocator implements Subscriber {
     threadPool.shutdown();
   }
 
-  public ListenableFuture<Boolean> sendPlayers(String clusterId, ServerSelectionMode mode,
+  public ListenableFuture<Boolean> sendPlayersToCluster(String clusterId, ServerSelectionMode mode,
       Set<UUID> players) throws IllegalArgumentException {
     if (clusterId == null || clusterId.equals("")) {
       throw new IllegalArgumentException("cluster id cannot be null or empty");
@@ -100,7 +101,8 @@ public class PlayerRelocator implements Subscriber {
       throw new IllegalArgumentException("must have at least one player");
     }
 
-    ClusterRelocationAttempt attempt = new ClusterRelocationAttempt(clusterId, mode, players);
+    ServerGroupRelocationAttempt attempt =
+        new ServerGroupRelocationAttempt(clusterId, mode, players);
     return attempt.start();
   }
 
@@ -127,6 +129,35 @@ public class PlayerRelocator implements Subscriber {
     }
 
     PlayerRelocationAttempt attempt = new PlayerRelocationAttempt(null, targetPlayerName, players);
+    return attempt.start();
+  }
+
+  /**
+   * Attempts to send a group of players to a list of specific servers.
+   * <p>
+   * Sending attempts will happen in same order as the list.
+   * <p>
+   * For internal use. Has no use for external clients through the main API.
+   * 
+   * @param orderedServers A list of the servers to attempt to send the players to.
+   * @param players The ids of the players to send.
+   * @return The asynchronous, future result of this attempt to relocate players. Returns a value
+   *         when the request finishes. <code>true</code> if the relocation is successful (does not
+   *         guarantee the players make it to their destination, but does successfully find a server
+   *         and try to send them there). <code>false</code> if the relocation fails, such as if the
+   *         servers deny the requests.
+   * @throws IllegalArgumentException on a <code>null</code> parameter or an empty collection.
+   */
+  public ListenableFuture<Boolean> sendPlayersToServers(List<ServerStatus> orderedServers,
+      Set<UUID> players) {
+    if (orderedServers == null || players == null) {
+      throw new IllegalArgumentException("params cannot be null");
+    } else if (orderedServers.isEmpty() || players.isEmpty()) {
+      throw new IllegalArgumentException("collections cannot be empty");
+    }
+
+    ServerGroupRelocationAttempt attempt =
+        new ServerGroupRelocationAttempt(orderedServers, players);
     return attempt.start();
   }
 
@@ -229,7 +260,7 @@ public class PlayerRelocator implements Subscriber {
       return;
     }
 
-    ClusterRelocationAttempt clusterAttempt = clusterAttempts.get(rr.getRequestId());
+    ServerGroupRelocationAttempt clusterAttempt = clusterAttempts.get(rr.getRequestId());
     if (clusterAttempt != null) {
       clusterAttempt.onResponse(rr);
     }
@@ -338,13 +369,15 @@ public class PlayerRelocator implements Subscriber {
   }
 
   /**
-   * Private helper runnable class that attempts to get a reservation on an instance of the
-   * destination cluster for a player or group of players.
+   * Private helper runnable class that attempts to get a reservation on one of a group of instances
+   * for a player or group of players.
+   * <p>
+   * Can attempt to send players to a cluster or a specified group of servers.
    * <p>
    * Defines the behavior of sending the request, waiting for the response, reacting to the
    * response, timeouts, etc.
    */
-  private class ClusterRelocationAttempt implements Runnable {
+  private class ServerGroupRelocationAttempt implements Runnable {
 
     private static final int MAX_TRIES = 20; // for sanity: does not try forever.
     private static final long WAIT_INTERVAL = 50;
@@ -352,21 +385,47 @@ public class PlayerRelocator implements Subscriber {
     private final int id;
     private final SettableFuture<Boolean> callback;
     private final Set<UUID> players;
-    private final String clusterId;
-    private final ServerSelectionMode mode;
 
-    private final Set<String> serversTried;
+    private String clusterId;
+    private ServerSelectionMode mode;
+
+    private Set<String> serversTried;
     private String currentServerId;
-    private List<ServerStatus> servers;
+    private Iterator<ServerStatus> servers;
 
     private volatile boolean wakeUp;
     private volatile boolean complete;
 
-    private ClusterRelocationAttempt(String clusterId, ServerSelectionMode mode, Set<UUID> players) {
+    /**
+     * Constructor that takes a cluster's id as its target.
+     * 
+     * @param clusterId The id of the cluster to try to send players to.
+     * @param mode The mode with which to select servers in the cluster.
+     * @param players The players to send.
+     */
+    private ServerGroupRelocationAttempt(String clusterId, ServerSelectionMode mode,
+        Set<UUID> players) {
       this.id = requestCounter.getAndIncrement();
       this.clusterId = clusterId;
       this.mode = mode;
       this.players = players;
+      this.callback = SettableFuture.create();
+
+      this.serversTried = new HashSet<String>();
+
+      clusterAttempts.put(id, this);
+    }
+
+    /**
+     * Constructor that takes a list of specific servers to try in order.
+     * 
+     * @param servers The servers to try.
+     * @param players The players to send.
+     */
+    private ServerGroupRelocationAttempt(List<ServerStatus> servers, Set<UUID> players) {
+      this.id = requestCounter.getAndIncrement();
+      this.players = players;
+      this.servers = servers.iterator();
       this.callback = SettableFuture.create();
 
       this.serversTried = new HashSet<String>();
@@ -381,22 +440,24 @@ public class PlayerRelocator implements Subscriber {
       // definitive failure
       while (!complete && tries++ <= MAX_TRIES) {
 
-        // gets a list of servers to try
-        servers = network.getServers(clusterId, mode, players.size());
+        // if targeting a cluster, gets a list of of the cluster's instance to try
+        if (clusterId != null) {
+          servers = network.getServers(clusterId, mode, players.size()).iterator();
 
-        // TODO debug
-        System.out.println("[ServerClusters] Upon requesting an instance of cluster " + clusterId
-            + " for " + players.size() + " players in " + mode.name()
-            + " mode, received these servers in return: {" + servers.toString() + "}");
+          // TODO debug
+          System.out.println("[ServerClusters] Upon requesting an instance of cluster " + clusterId
+              + " for " + players.size() + " players in " + mode.name()
+              + " mode, received these servers in return: {" + servers.toString() + "}");
 
-        if (servers.isEmpty()) {
-          complete(false);
-          return;
-        }
+        } // else just uses the predefined list of servers to try
 
         boolean foundNew = false;
-        for (ServerStatus server : servers) { // does not retry
-          if (!serversTried.contains(server.getId())) {
+        while (servers.hasNext()) {
+
+          ServerStatus server = servers.next();
+
+          // does not retry servers that already denied or failed to respond.
+          if (server != null && !serversTried.contains(server.getId())) {
             currentServerId = server.getId();
             serversTried.add(currentServerId);
             foundNew = true;

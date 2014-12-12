@@ -135,7 +135,7 @@ public class ServerClusters implements ServerClustersAPI {
               + "', but it is not configured. Defaulting to random instance selection...");
     }
 
-    return relocator.sendPlayers(clusterId, mode, pSet);
+    return relocator.sendPlayersToCluster(clusterId, mode, pSet);
   }
 
   @Override
