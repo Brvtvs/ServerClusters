@@ -84,7 +84,7 @@ public class ServerStatus {
    * @param openSlots The number of open player slots available on this server.
    * @throws IllegalArgumentException on a negative number of slots.
    */
-  public final void updateOpenSlots(int openSlots) throws IllegalArgumentException {
+  final void updateOpenSlots(int openSlots) throws IllegalArgumentException {
     if (openSlots < 0) {
       throw new IllegalArgumentException("the number of open slots cannot be less than 0");
     }
