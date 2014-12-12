@@ -20,9 +20,9 @@ public interface NetworkStatus {
   void onHeartbeat(Heartbeat heartbeat) throws IllegalArgumentException;
 
   /**
-   * Gets an ordered list of the ids of available servers. Orders by the given selection mode, only
-   * including responsive servers with enough slots to accommodate the number of players being
-   * relocated.
+   * Gets an ordered list of cached data about available servers. Orders by the given selection
+   * mode, only including responsive servers with enough slots to accommodate the number of players
+   * being relocated.
    * <p>
    * Tries to get a server with enough slots for the defined number of players. If the players do
    * not need to end up on the same server, call this method for each individual player.
@@ -30,13 +30,13 @@ public interface NetworkStatus {
    * @param clusterId The id of the cluster to get a server for.
    * @param mode The mode to select a server with.
    * @param numPlayers The number of players being relocated.
-   * @return The id of the best available server according to the selection criteria. An empty list
-   *         if no valid server for the cluster was found whatsoever.
+   * @return An ordered list of the best available servers according to the selection criteria. An
+   *         empty list if no valid server for the cluster was found whatsoever.
    * @throws IllegalArgumentException on a <code>null</code> parameter or an empty cluster id.
    * 
    * @see ServerStatus
    */
-  List<String> getServers(String clusterId, ServerSelectionMode mode, int numPlayers)
+  List<ServerStatus> getServers(String clusterId, ServerSelectionMode mode, int numPlayers)
       throws IllegalArgumentException;
 
   /**

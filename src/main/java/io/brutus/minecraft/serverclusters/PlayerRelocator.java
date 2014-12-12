@@ -2,6 +2,7 @@ package io.brutus.minecraft.serverclusters;
 
 import io.brutus.minecraft.pubsub.PubSub;
 import io.brutus.minecraft.serverclusters.bukkit.ServerUtil;
+import io.brutus.minecraft.serverclusters.cache.ServerStatus;
 import io.brutus.minecraft.serverclusters.protocol.PlayerNameReservationRequest;
 import io.brutus.minecraft.serverclusters.protocol.PlayerUuidReservationRequest;
 import io.brutus.minecraft.serverclusters.protocol.ReservationRequest;
@@ -355,8 +356,8 @@ public class PlayerRelocator implements Subscriber {
     private final ServerSelectionMode mode;
 
     private final Set<String> serversTried;
-    private String currentServer;
-    private List<String> servers;
+    private String currentServerId;
+    private List<ServerStatus> servers;
 
     private volatile boolean wakeUp;
     private volatile boolean complete;
@@ -394,10 +395,10 @@ public class PlayerRelocator implements Subscriber {
         }
 
         boolean foundNew = false;
-        for (String server : servers) { // does not retry
-          if (!serversTried.contains(server)) {
-            currentServer = server;
-            serversTried.add(currentServer);
+        for (ServerStatus server : servers) { // does not retry
+          if (!serversTried.contains(server.getId())) {
+            currentServerId = server.getId();
+            serversTried.add(currentServerId);
             foundNew = true;
             break;
           }
@@ -409,10 +410,10 @@ public class PlayerRelocator implements Subscriber {
 
         // TODO debug
         System.out.println("[ServerClusters] Sending a reservation request message of id " + id
-            + " to " + currentServer + " for " + players.size() + " players.");
+            + " to " + currentServerId + " for " + players.size() + " players.");
 
         messager.publish(requestChannel,
-            ReservationRequest.createMessageToServer(currentServer, thisServerId, id, players));
+            ReservationRequest.createMessageToServer(currentServerId, thisServerId, id, players));
 
         long timeWaited = 0;
         while (timeWaited < responseTimeout) {

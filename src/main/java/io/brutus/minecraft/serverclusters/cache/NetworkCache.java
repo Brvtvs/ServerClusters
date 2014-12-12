@@ -63,7 +63,7 @@ public class NetworkCache implements NetworkStatus, ExpirationListener<String, S
   }
 
   @Override
-  public List<String> getServers(String clusterId, ServerSelectionMode mode, int numPlayers)
+  public List<ServerStatus> getServers(String clusterId, ServerSelectionMode mode, int numPlayers)
       throws IllegalArgumentException {
     if (clusterId == null || clusterId.equals("")) {
       throw new IllegalArgumentException("cluster id cannot be null or empty");
@@ -75,14 +75,13 @@ public class NetworkCache implements NetworkStatus, ExpirationListener<String, S
       throw new IllegalArgumentException("number of players cannot be negative");
     }
 
-    List<String> ret = new ArrayList<String>();
+    List<ServerStatus> servers = new ArrayList<ServerStatus>();
 
     Collection<ServerStatus> clusteredServers = clusters.get(clusterId);
     if (clusteredServers == null || clusteredServers.isEmpty()) {
-      return ret;
+      return servers;
     }
 
-    List<ServerStatus> servers = new ArrayList<ServerStatus>();
     for (ServerStatus server : clusteredServers) {
       if (hasTimedOut(server) || server.getOpenSlots() < numPlayers) { // ignores invalid servers
         continue;
@@ -90,17 +89,9 @@ public class NetworkCache implements NetworkStatus, ExpirationListener<String, S
       servers.add(server);
     }
 
-    if (servers.isEmpty()) {
-      return ret;
-    }
-
     Collections.sort(servers, mode);
 
-    for (ServerStatus status : servers) {
-      ret.add(status.getId());
-    }
-
-    return ret;
+    return servers;
   }
 
   @Override
