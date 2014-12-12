@@ -5,6 +5,7 @@ import java.util.Set;
 import java.util.UUID;
 
 import io.brutus.minecraft.serverclusters.HeartbeatMessager;
+import io.brutus.minecraft.serverclusters.InstanceConsolidator;
 import io.brutus.minecraft.serverclusters.NetworkStatus;
 import io.brutus.minecraft.serverclusters.PlayerRelocator;
 import io.brutus.minecraft.serverclusters.ServerClustersAPI;
@@ -47,6 +48,7 @@ public class ServerClusters implements ServerClustersAPI {
 
   private final HeartbeatMessager heartbeats;
   private final PlayerRelocator relocator;
+  private final InstanceConsolidator consolidator;
 
   public static ServerClusters getSingleton() {
     if (singleton == null) {
@@ -80,6 +82,11 @@ public class ServerClusters implements ServerClustersAPI {
 
     heartbeats = new HeartbeatMessager(config, network, slotManager);
     relocator = new PlayerRelocator(config, network, slotManager);
+    if (config.attemptInstanceConsolidations()) {
+      consolidator = new InstanceConsolidator(config, network, slotManager, relocator);
+    } else {
+      consolidator = null;
+    }
 
     plugin.getCommand("networkstatus")
         .setExecutor(
@@ -184,6 +191,9 @@ public class ServerClusters implements ServerClustersAPI {
   void onDisable() {
     heartbeats.destroy();
     relocator.destroy();
+    if (consolidator != null) {
+      consolidator.destroy();
+    }
     singleton = null;
   }
 

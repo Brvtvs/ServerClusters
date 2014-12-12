@@ -6,7 +6,6 @@ import java.util.Set;
 import java.util.UUID;
 
 import io.brutus.minecraft.serverclusters.bukkit.ServerUtil;
-import io.brutus.minecraft.serverclusters.cache.NetworkCache;
 import io.brutus.minecraft.serverclusters.cache.ServerStatus;
 import io.brutus.minecraft.serverclusters.selection.ServerSelectionMode;
 
@@ -20,14 +19,14 @@ public class InstanceConsolidator {
   private static final long PERIOD_MILLIS = 20000;
 
   private final ServerClustersConfig config;
-  private final NetworkCache network;
+  private final NetworkStatus network;
   private final SlotManager slots;
   private final PlayerRelocator relocator;
 
   private volatile boolean alive;
 
-  public InstanceConsolidator(ServerClustersConfig config, NetworkCache network, SlotManager slots,
-      PlayerRelocator relocator) throws IllegalArgumentException {
+  public InstanceConsolidator(ServerClustersConfig config, NetworkStatus network,
+      SlotManager slots, PlayerRelocator relocator) throws IllegalArgumentException {
     if (config == null || network == null || slots == null || relocator == null) {
       throw new IllegalArgumentException("params cannot be null");
     }
