@@ -123,6 +123,10 @@ public class ServerStatus {
     return true;
   }
 
-
+  @Override
+  public String toString() {
+    return "ServerStatus [id=" + id + ", clusterId=" + clusterId + ", openSlots=" + openSlots
+        + ", lastUpdated=" + lastUpdated + "]";
+  }
 
 }
