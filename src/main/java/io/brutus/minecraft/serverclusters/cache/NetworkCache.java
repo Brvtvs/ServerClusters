@@ -106,20 +106,19 @@ public class NetworkCache implements NetworkStatus, ExpirationListener<String, S
     ret.add("[NetworkStatus] Clusters: ");
 
     for (String clusterId : clusters.keySet()) { // for each tracked cluster
-      String str = "  " + clusterId + ": ";
+      String clusterHeader = "  " + clusterId + ": ";
       boolean anyServers = false;
 
       for (ServerStatus status : clusters.get(clusterId)) {
         if (hasTimedOut(status)) {
           continue;
         }
-        anyServers = true;
-        str = str + status.getId() + " (" + status.getOpenSlots() + " open slots), ";
-      }
-      if (anyServers) {
-        // if the cluster has any servers, adds it to the status and removes the last floating
-        // comma.
-        ret.add(str.substring(0, str.length() - 2));
+        // only adds the cluster if at least one of its servers is up
+        if (!anyServers) {
+          ret.add(clusterHeader);
+          anyServers = true;
+        }
+        ret.add("    - " + status.getId() + " (" + status.getOpenSlots() + " open slots), ");
       }
     }
 
