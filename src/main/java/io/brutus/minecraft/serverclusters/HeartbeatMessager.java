@@ -18,6 +18,13 @@ import io.brutus.networking.pubsubmessager.Subscriber;
  * open slots changes often, the heart will beat fast in order to reduce the chances of a connected
  * server having outdated information. When no change is happening, the heart will beat more slowly,
  * just periodically letting connected servers know that this server has not crashed.
+ * <p>
+ * Does not listen to or consider shutdown notifications. While this messager should be made to send
+ * a shutdown notification when a server is shutting down cleanly, this really has no use for
+ * listening to or interpreting shutdown messages. As soon as heartbeat messages stop coming from a
+ * server, regardless of the reason, this server will know it is no longer available. Shutdown
+ * messages are sent to inform peers that <i>do</i> need to know why a server stopped sending
+ * heartbeats.
  */
 public class HeartbeatMessager implements Subscriber {
 
