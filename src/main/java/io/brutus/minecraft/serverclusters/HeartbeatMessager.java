@@ -3,6 +3,7 @@ package io.brutus.minecraft.serverclusters;
 import java.util.Arrays;
 
 import io.brutus.minecraft.pubsub.PubSub;
+import io.brutus.minecraft.serverclusters.bukkit.ServerClusters;
 import io.brutus.minecraft.serverclusters.bukkit.ServerUtil;
 import io.brutus.minecraft.serverclusters.protocol.Heartbeat;
 import io.brutus.minecraft.serverclusters.protocol.ShutdownNotification;
@@ -86,12 +87,16 @@ public class HeartbeatMessager implements Subscriber {
       return;
     }
     alive = false;
-    ServerUtil.sync(new Runnable() {
-      @Override
-      public void run() {
-        messager.publish(shutdownChannel, ShutdownNotification.createMessage(thisServerId));
-      }
-    });
+    if (ServerClusters.getSingleton().getPlugin().isEnabled()) {
+      ServerUtil.sync(new Runnable() {
+        @Override
+        public void run() {
+          messager.publish(shutdownChannel, ShutdownNotification.createMessage(thisServerId));
+        }
+      });
+    } else {
+      messager.publish(shutdownChannel, ShutdownNotification.createMessage(thisServerId));
+    }
   }
 
   /**
