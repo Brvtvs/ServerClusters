@@ -40,6 +40,17 @@ public interface NetworkStatus {
       throws IllegalArgumentException;
 
   /**
+   * Gets the number of server instances in a cluster on the network.
+   * <p>
+   * The result is based on cached data and may be slightly out of date.
+   * 
+   * @param clusterId The id of the cluster to get the size of.
+   * @return The number of responding servers currently in the given cluster. <code>0</code> if no
+   *         instances are up or if there is no cluster for the given id.
+   */
+  int getClusterSize(String clusterId);
+
+  /**
    * Gets a human-readable string array version of the network's status.
    * <p>
    * Includes a one-line header and only includes clusters that have at least one server that is

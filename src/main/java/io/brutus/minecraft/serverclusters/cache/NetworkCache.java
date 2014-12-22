@@ -16,6 +16,7 @@ import com.google.common.collect.Multimap;
 import com.google.common.collect.Multimaps;
 
 import io.brutus.minecraft.serverclusters.NetworkStatus;
+import io.brutus.minecraft.serverclusters.bukkit.ServerClusters;
 import io.brutus.minecraft.serverclusters.protocol.Heartbeat;
 import io.brutus.minecraft.serverclusters.selection.ServerSelectionMode;
 
@@ -60,6 +61,32 @@ public class NetworkCache implements NetworkStatus, ExpirationListener<String, S
     } else {
       status.updateOpenSlots(hb.getOpenSlots());
     }
+  }
+
+  @Override
+  public int getClusterSize(String clusterId) {
+    int ret = 0;
+    if (clusterId == null || clusterId.isEmpty()) {
+      return ret;
+    }
+
+    // if this server's cluster is the target, adds one because this server does not track itself in
+    // this cache.
+    if (clusterId.equals(ServerClusters.getSingleton().getClusterId())) {
+      ret++;
+    }
+
+    Collection<ServerStatus> instances = clusters.get(clusterId);
+    if (instances != null) {
+      for (ServerStatus status : instances) {
+        // makes sure the servers being counted are still valid
+        if (!hasTimedOut(status)) {
+          ret++;
+        }
+      }
+    }
+
+    return ret;
   }
 
   @Override

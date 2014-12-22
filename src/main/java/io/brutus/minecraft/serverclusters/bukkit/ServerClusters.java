@@ -106,6 +106,11 @@ public class ServerClusters implements ServerClustersAPI {
   }
 
   @Override
+  public int getClusterSize(String clusterId) {
+    return network.getClusterSize(clusterId);
+  }
+
+  @Override
   public int getOpenSlots() {
     return slotManager.getOpenSlots();
   }
