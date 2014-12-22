@@ -73,6 +73,14 @@ public interface ServerClustersConfig {
   byte[] getHeartbeatChannel();
 
   /**
+   * Getes the channel, as a <code>byte</code> array, on which to send and listen for shutdown
+   * notifications to/from connected servers.
+   * 
+   * @return The pub/sub shutdown messaging channel.
+   */
+  byte[] getShutdownChannel();
+
+  /**
    * Gets the channel, as a <code>byte</code> array, on which to send and listen for
    * slot-reservation requests to/from connected servers.
    * 

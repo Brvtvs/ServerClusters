@@ -5,6 +5,7 @@ import java.util.Arrays;
 import io.brutus.minecraft.pubsub.PubSub;
 import io.brutus.minecraft.serverclusters.bukkit.ServerUtil;
 import io.brutus.minecraft.serverclusters.protocol.Heartbeat;
+import io.brutus.minecraft.serverclusters.protocol.ShutdownNotification;
 import io.brutus.networking.pubsubmessager.PubSubMessager;
 import io.brutus.networking.pubsubmessager.Subscriber;
 
@@ -26,6 +27,7 @@ public class HeartbeatMessager implements Subscriber {
   private final NetworkStatus networkCache;
 
   private final PubSubMessager messager;
+  private final byte[] shutdownChannel;
   private final byte[] heartbeatChannel;
   private final byte[] baseMessage;
 
@@ -43,10 +45,12 @@ public class HeartbeatMessager implements Subscriber {
     this.slotManager = slotManager;
     this.networkCache = networkStatus;
 
+    shutdownChannel = config.getShutdownChannel();
     heartbeatChannel = config.getHeartbeatChannel();
-    if (heartbeatChannel == null || heartbeatChannel.length < 1) {
+    if (shutdownChannel == null || shutdownChannel.length < 1 || heartbeatChannel == null
+        || heartbeatChannel.length < 1) {
       throw new IllegalArgumentException(
-          "the configured heartbeat messaging channels cannot be null or empty");
+          "the configured heartbeat and shutdown messaging channels cannot be null or empty");
     }
 
     this.messager = PubSub.getSingleton().getMessager(config.getMessagerInstanceName());
@@ -62,12 +66,36 @@ public class HeartbeatMessager implements Subscriber {
   }
 
   /**
-   * Stops this from sending/receiving any more heartbeats and kills its connections. Cannot be
-   * reversed.
+   * Sends a shutdown notification for this server and stops its heartbeat.
+   * <p>
+   * Does NOT stop this messager from receiving or using other server's heartbeat messages. Turns
+   * this messager into a receiver only. To fully relinquish all of this messager's resources, use
+   * {@link #destroy()}.
+   * <p>
+   * Cannot be reversed.
+   */
+  public void sendShutdownNotification() {
+    if (!alive) {
+      return;
+    }
+    alive = false;
+    ServerUtil.sync(new Runnable() {
+      @Override
+      public void run() {
+        messager.publish(shutdownChannel, ShutdownNotification.createMessage(thisServerId));
+      }
+    });
+  }
+
+  /**
+   * Stops this from sending/receiving any more heartbeats, sends a shutdown notification if one has
+   * not already been sent, and kills its connections.
+   * <p>
+   * Cannot be reversed.
    */
   public void destroy() {
+    sendShutdownNotification();
     messager.unsubscribe(heartbeatChannel, this);
-    alive = false;
   }
 
   @Override
@@ -108,11 +136,6 @@ public class HeartbeatMessager implements Subscriber {
     ServerUtil.sync(new Runnable() {
       @Override
       public void run() {
-
-        // TODO debug
-        System.out.println("[ServerClusters] Sending a heartbeat message ( " + openSlots
-            + " open slots).");
-
         Heartbeat.updateMessage(baseMessage, openSlots);
         messager.publish(heartbeatChannel, baseMessage);
       }

@@ -80,8 +80,8 @@ public interface ServerClustersAPI {
    *        players.
    * @return A future object that will update when this operation is complete. Returns
    *         <code>true</code> when the number of slots is successfully altered and any existing
-   *         player connections are resolved. <code>false</code> if the process is interrupted
-   *         before definitively completing.
+   *         player connections are resolved. <code>false</code> if this server is closed or the
+   *         process is interrupted before definitively completing.
    * @throws IllegalArgumentException on a negative value.
    */
   ListenableFuture<Boolean> updateTotalSlots(int totalSlots) throws IllegalArgumentException;
@@ -199,5 +199,25 @@ public interface ServerClustersAPI {
    */
   ListenableFuture<Boolean> sendPlayersToPlayer(String targetPlayerName, UUID... playersToSend)
       throws IllegalArgumentException;
+
+  /**
+   * Stops players from being sent to this server until it shuts down.
+   * <p>
+   * Forces this server to stop sending heartbeat messages and to tell connected servers on the
+   * network that it is shutting down.
+   * <p>
+   * This is irrecoverable and the server must be restarted for ServerClusters to continue sending
+   * heartbeats.
+   * <p>
+   * After this is invoked, ServerClusters will still be able to relocate players, such as through
+   * {@link #sendPlayersToCluster(String, UUID...)}, and will still track information about other
+   * servers on the network, but no players will be sent to this server.
+   * 
+   * @return A future object that will update when this operation is complete. Returns
+   *         <code>true</code> when the shutdown process has successfully completed and it is safe
+   *         to assume no more players will connect. <code>false</code> if the server is already
+   *         closed or if the process fails or is interrupted before definitively completing.
+   */
+  ListenableFuture<Boolean> closeThisServer();
 
 }

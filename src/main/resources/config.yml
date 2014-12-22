@@ -89,6 +89,7 @@ messaging:
     # (Channel names will be encoded to UTF-8 bytes) Remember, they are case sensitive.
     channels:
         heartbeat: 'sc-hb'
+        shutdown: 'sc-sh'
         reservation-requests: 'sc-req'
         reservation-responses: 'sc-resp'
         

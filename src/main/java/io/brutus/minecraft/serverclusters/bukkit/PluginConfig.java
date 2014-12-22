@@ -29,6 +29,7 @@ public class PluginConfig implements ServerClustersConfig {
 
   private String messagerInstanceName;
   private byte[] heartbeatChannel;
+  private byte[] shutdownChannel;
   private byte[] reservationChannel;
   private byte[] responseChannel;
 
@@ -84,6 +85,7 @@ public class PluginConfig implements ServerClustersConfig {
 
       ConfigurationSection channelsSec = messagingSec.getConfigurationSection("channels");
       heartbeatChannel = channelsSec.getString("heartbeat").getBytes(CHARSET);
+      shutdownChannel = channelsSec.getString("shutdown").getBytes(CHARSET);
       reservationChannel = channelsSec.getString("reservation-requests").getBytes(CHARSET);
       responseChannel = channelsSec.getString("reservation-responses").getBytes(CHARSET);
 
@@ -151,6 +153,11 @@ public class PluginConfig implements ServerClustersConfig {
   @Override
   public byte[] getHeartbeatChannel() {
     return heartbeatChannel.clone();
+  }
+
+  @Override
+  public byte[] getShutdownChannel() {
+    return shutdownChannel.clone();
   }
 
   @Override

@@ -50,6 +50,8 @@ public class ServerClusters implements ServerClustersAPI {
   private final PlayerRelocator relocator;
   private final InstanceConsolidator consolidator;
 
+  private boolean heartBeating;
+
   public static ServerClusters getSingleton() {
     if (singleton == null) {
       try {
@@ -92,6 +94,8 @@ public class ServerClusters implements ServerClustersAPI {
         .setExecutor(
             new NetworkStatusCommand(network, slotManager, config.getServerId(), config
                 .getClusterId()));
+
+    heartBeating = true;
   }
 
 
@@ -122,6 +126,11 @@ public class ServerClusters implements ServerClustersAPI {
 
   @Override
   public ListenableFuture<Boolean> updateTotalSlots(int totalSlots) throws IllegalArgumentException {
+    if (!heartBeating) {
+      SettableFuture<Boolean> dummy = SettableFuture.create();
+      dummy.set(false);
+      return dummy;
+    }
     return slotManager.setTotalSlots(totalSlots);
   }
 
@@ -182,6 +191,22 @@ public class ServerClusters implements ServerClustersAPI {
     }
 
     return relocator.sendPlayersToPlayer(targetPlayerName, pSet);
+  }
+
+  @Override
+  public ListenableFuture<Boolean> closeThisServer() {
+    ListenableFuture<Boolean> ret = null;
+    if (!heartBeating) {
+      ret = SettableFuture.create();
+      ((SettableFuture<Boolean>) ret).set(false);
+
+    } else {
+      heartBeating = false;
+      heartbeats.sendShutdownNotification();
+      ret = slotManager.setTotalSlots(0);
+    }
+
+    return ret;
   }
 
   /**
