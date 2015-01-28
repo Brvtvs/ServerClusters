@@ -35,10 +35,9 @@
 			<scope>provided</scope>
 		</dependency>
 		<dependency>
-			<groupId>org.bukkit</groupId>
-			<artifactId>bukkit</artifactId>
-			<version>1.7.10-R0.1-SNAPSHOT</version>
-			<type>jar</type>
+			<groupId>org.spigotmc</groupId>
+			<artifactId>spigot-api</artifactId>
+			<version>1.8-R0.1-SNAPSHOT</version>
 			<scope>provided</scope>
 		</dependency>
 	</dependencies>
@@ -46,7 +45,7 @@
 	<build>
 		<defaultGoal>clean install</defaultGoal>
 		<sourceDirectory>${basedir}/src/main/java/</sourceDirectory>
-		<finalName>${project.name}-${project.version}</finalName>
+		<finalName>${project.name}</finalName>
 		<plugins>
 			<plugin>
 				<groupId>org.apache.maven.plugins</groupId>
