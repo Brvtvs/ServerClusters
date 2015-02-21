@@ -3,7 +3,7 @@
 	<modelVersion>4.0.0</modelVersion>
 	<groupId>io.brutus.minecraft</groupId>
 	<artifactId>serverclusters</artifactId>
-	<version>1.0.0</version>
+	<version>1.0.1-SNAPSHOT</version>
 	<name>ServerClusters</name>
 	<description>A plugin that organizes servers into clusters that can be used to efficiently distribute players around the network.</description>
 
