@@ -95,7 +95,6 @@ public class ServerUtil {
    * @param name The name to search with.
    * @return <code>true</code> if the player is currently online.
    */
-  @SuppressWarnings("deprecation")
   public static boolean isPlayerOnline(String name) {
     Player p = Bukkit.getPlayerExact(name);
     if (p == null || !p.isOnline()) {
