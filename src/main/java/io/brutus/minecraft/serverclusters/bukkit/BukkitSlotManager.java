@@ -21,7 +21,7 @@ import org.bukkit.event.player.PlayerQuitEvent;
 import com.google.common.util.concurrent.ListenableFuture;
 import com.google.common.util.concurrent.SettableFuture;
 
-import io.brutus.minecraft.serverclusters.SlotManager;
+import io.brutus.minecraft.serverclusters.mcserver.SlotManager;
 
 /**
  * A slot manager that uses Bukkit events to handle player logins, joins, and quits.

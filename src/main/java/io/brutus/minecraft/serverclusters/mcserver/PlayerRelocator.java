@@ -1,8 +1,9 @@
-package io.brutus.minecraft.serverclusters;
+package io.brutus.minecraft.serverclusters.mcserver;
 
 import io.brutus.minecraft.pubsub.PubSub;
 import io.brutus.minecraft.serverclusters.bukkit.ServerUtil;
-import io.brutus.minecraft.serverclusters.cache.ServerStatus;
+import io.brutus.minecraft.serverclusters.networkstatus.NetworkStatus;
+import io.brutus.minecraft.serverclusters.networkstatus.ServerStatus;
 import io.brutus.minecraft.serverclusters.protocol.PlayerNameReservationRequest;
 import io.brutus.minecraft.serverclusters.protocol.PlayerUuidReservationRequest;
 import io.brutus.minecraft.serverclusters.protocol.ReservationRequest;

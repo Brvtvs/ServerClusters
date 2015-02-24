@@ -2,7 +2,7 @@ package io.brutus.minecraft.serverclusters.selection;
 
 import java.util.Comparator;
 
-import io.brutus.minecraft.serverclusters.cache.ServerStatus;
+import io.brutus.minecraft.serverclusters.networkstatus.ServerStatus;
 
 /**
  * A server selecter that gives lower values to servers with fewer open slots.

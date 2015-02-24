@@ -1,4 +1,4 @@
-package io.brutus.minecraft.serverclusters;
+package io.brutus.minecraft.serverclusters.mcserver;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -6,7 +6,8 @@ import java.util.Set;
 import java.util.UUID;
 
 import io.brutus.minecraft.serverclusters.bukkit.ServerUtil;
-import io.brutus.minecraft.serverclusters.cache.ServerStatus;
+import io.brutus.minecraft.serverclusters.networkstatus.NetworkStatus;
+import io.brutus.minecraft.serverclusters.networkstatus.ServerStatus;
 import io.brutus.minecraft.serverclusters.selection.ServerSelectionMode;
 
 /**

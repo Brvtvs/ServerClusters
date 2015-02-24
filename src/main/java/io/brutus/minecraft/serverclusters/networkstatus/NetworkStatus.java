@@ -1,23 +1,13 @@
-package io.brutus.minecraft.serverclusters;
+package io.brutus.minecraft.serverclusters.networkstatus;
 
 import java.util.List;
 
-import io.brutus.minecraft.serverclusters.cache.ServerStatus;
-import io.brutus.minecraft.serverclusters.protocol.Heartbeat;
 import io.brutus.minecraft.serverclusters.selection.ServerSelectionMode;
 
 /**
  * A store of information about connected servers, updated with heartbeat and shutdown messages.
  */
 public interface NetworkStatus {
-
-  /**
-   * Updates the network's status with the information contained in the heartbeat.
-   * 
-   * @param heartbeat The contents of a received heartbeat message from a connected server.
-   * @throws IllegalArgumentException on a <code>null</code> heartbeat.
-   */
-  void onHeartbeat(Heartbeat heartbeat) throws IllegalArgumentException;
 
   /**
    * Gets an ordered list of cached data about available servers. Orders by the given selection
@@ -49,6 +39,20 @@ public interface NetworkStatus {
    *         instances are up or if there is no cluster for the given id.
    */
   int getClusterSize(String clusterId);
+
+  /**
+   * Registers a listener to be informed when connected servers come online or go offline.
+   * 
+   * @param listener The listener to inform of servers starting/stopping.
+   */
+  void registerListener(NetworkChangeListener listener);
+
+  /**
+   * Removes a listener from being informed when connected servers come online or go offline.
+   * 
+   * @param listener The listener to stop informing of servers starting/stopping.
+   */
+  void unregisterListener(NetworkChangeListener listener);
 
   /**
    * Gets a human-readable string array version of the network's status.

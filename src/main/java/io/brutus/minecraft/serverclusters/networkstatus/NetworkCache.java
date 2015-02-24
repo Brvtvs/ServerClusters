@@ -1,10 +1,12 @@
-package io.brutus.minecraft.serverclusters.cache;
+package io.brutus.minecraft.serverclusters.networkstatus;
 
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.HashSet;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.Set;
 import java.util.concurrent.TimeUnit;
 
 import net.jodah.expiringmap.ExpiringMap;
@@ -15,22 +17,25 @@ import com.google.common.collect.HashMultimap;
 import com.google.common.collect.Multimap;
 import com.google.common.collect.Multimaps;
 
-import io.brutus.minecraft.serverclusters.NetworkStatus;
 import io.brutus.minecraft.serverclusters.protocol.Heartbeat;
+import io.brutus.minecraft.serverclusters.protocol.ShutdownNotification;
 import io.brutus.minecraft.serverclusters.selection.ServerSelectionMode;
 
 /**
  * A cache of data about connected servers, updated and maintained by their incoming heartbeat and
  * shutdown messages.
  */
-public class NetworkCache implements NetworkStatus, ExpirationListener<String, ServerStatus> {
+public class NetworkCache implements NetworkStatus, HeartbeatListener,
+    ExpirationListener<String, ServerStatus> {
 
   private final long serverTimeout;
 
   private Multimap<String, ServerStatus> clusters; // <cluster id, server statuses within cluster>
   private ExpiringMap<String, ServerStatus> servers; // <server id, server status>
 
-  private String serverId; // this game server's id, if this is being used on a game server.
+  private Set<NetworkChangeListener> listeners;
+
+  private String thisServerId; // this game server's id, if this is being used on a game server.
 
   /**
    * Class constructor.
@@ -51,15 +56,27 @@ public class NetworkCache implements NetworkStatus, ExpirationListener<String, S
     HashMultimap<String, ServerStatus> notThreadSafe = HashMultimap.create();
     clusters = Multimaps.synchronizedSetMultimap(notThreadSafe);
 
+    listeners = new HashSet<NetworkChangeListener>();
+
     servers =
         ExpiringMap.builder().expiration(serverTimeout, TimeUnit.MILLISECONDS)
             .expirationPolicy(ExpirationPolicy.ACCESSED).expirationListener(this).build();
   }
 
   @Override
+  public void registerListener(NetworkChangeListener listener) {
+    listeners.add(listener);
+  }
+
+  @Override
+  public void unregisterListener(NetworkChangeListener listener) {
+    listeners.remove(listener);
+  }
+
+  @Override
   public void onHeartbeat(Heartbeat hb) throws IllegalArgumentException {
-    if (hb == null) {
-      throw new IllegalArgumentException("heartbeat cannot be null");
+    if (hb.getServerId().equals(thisServerId)) {
+      return;
     }
 
     ServerStatus status = servers.get(hb.getServerId());
@@ -68,8 +85,29 @@ public class NetworkCache implements NetworkStatus, ExpirationListener<String, S
       status = new ServerStatus(hb.getServerId(), hb.getClusterId(), hb.getOpenSlots());
       servers.put(status.getId(), status);
       clusters.put(status.getClusterId(), status);
+
+      for (NetworkChangeListener listener : listeners) {
+        listener.onServerJoin(hb.getServerId(), hb.getServerIp(), hb.getServerPort());
+      }
+
     } else {
       status.updateOpenSlots(hb.getOpenSlots());
+    }
+  }
+
+  @Override
+  public void onShutdownNotification(ShutdownNotification sn) {
+    if (sn.getServerId().equals(thisServerId)) {
+      return;
+    }
+
+    ServerStatus status = servers.remove(sn.getServerId());
+    if (status != null) {
+      clusters.remove(status.getClusterId(), status);
+
+      for (NetworkChangeListener listener : listeners) {
+        listener.onServerWillShutdown(sn.getServerId());
+      }
     }
   }
 
@@ -82,7 +120,7 @@ public class NetworkCache implements NetworkStatus, ExpirationListener<String, S
 
     // if this server's cluster is the target, adds one because this server does not track itself in
     // this cache.
-    if (clusterId.equals(serverId)) {
+    if (clusterId.equals(thisServerId)) {
       ret++;
     }
 
@@ -133,7 +171,12 @@ public class NetworkCache implements NetworkStatus, ExpirationListener<String, S
 
   @Override
   public void expired(String serverId, ServerStatus status) {
-    clusters.remove(status.getClusterId(), status);
+    if (clusters.remove(status.getClusterId(), status)) {
+
+      for (NetworkChangeListener listener : listeners) {
+        listener.onServerUnresponsive(serverId);
+      }
+    }
   }
 
   @Override

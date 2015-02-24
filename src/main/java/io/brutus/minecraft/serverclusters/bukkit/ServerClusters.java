@@ -4,15 +4,18 @@ import java.util.HashSet;
 import java.util.Set;
 import java.util.UUID;
 
-import io.brutus.minecraft.serverclusters.HeartbeatMessager;
-import io.brutus.minecraft.serverclusters.InstanceConsolidator;
-import io.brutus.minecraft.serverclusters.NetworkStatus;
-import io.brutus.minecraft.serverclusters.PlayerRelocator;
-import io.brutus.minecraft.serverclusters.ServerClustersAPI;
-import io.brutus.minecraft.serverclusters.ServerClustersConfig;
-import io.brutus.minecraft.serverclusters.SlotManager;
-import io.brutus.minecraft.serverclusters.cache.NetworkCache;
+import io.brutus.minecraft.pubsub.PubSub;
+import io.brutus.minecraft.serverclusters.mcserver.BeatingHeart;
+import io.brutus.minecraft.serverclusters.mcserver.InstanceConsolidator;
+import io.brutus.minecraft.serverclusters.mcserver.PlayerRelocator;
+import io.brutus.minecraft.serverclusters.mcserver.ServerClustersAPI;
+import io.brutus.minecraft.serverclusters.mcserver.ServerClustersConfig;
+import io.brutus.minecraft.serverclusters.mcserver.SlotManager;
+import io.brutus.minecraft.serverclusters.networkstatus.HeartbeatSubscription;
+import io.brutus.minecraft.serverclusters.networkstatus.NetworkCache;
+import io.brutus.minecraft.serverclusters.networkstatus.NetworkStatus;
 import io.brutus.minecraft.serverclusters.selection.ServerSelectionMode;
+import io.brutus.networking.pubsubmessager.PubSubMessager;
 
 import org.bukkit.Bukkit;
 
@@ -43,10 +46,13 @@ public class ServerClusters implements ServerClustersAPI {
   private final PluginMain plugin;
   private final ServerClustersConfig config;
 
-  private final NetworkStatus network;
-  private final SlotManager slotManager;
+  private final PubSubMessager messager;
 
-  private final HeartbeatMessager heartbeats;
+  private final HeartbeatSubscription heartbeatListener;
+  private final NetworkStatus network;
+
+  private final SlotManager slotManager;
+  private final BeatingHeart beatingHeart;
   private final PlayerRelocator relocator;
   private final InstanceConsolidator consolidator;
 
@@ -73,6 +79,20 @@ public class ServerClusters implements ServerClustersAPI {
     this.plugin = plugin;
     this.config = new PluginConfig(plugin);
 
+    this.messager = PubSub.getSingleton().getMessager(config.getMessagerInstanceName());
+    if (messager == null) {
+      throw new IllegalStateException("a messager for the configured name could not be found");
+    }
+
+    // initializes heartbeat listening and network-status caching
+    heartbeatListener =
+        new HeartbeatSubscription(messager, config.getHeartbeatChannel(),
+            config.getShutdownChannel());
+    network = new NetworkCache(config.getServerTimeout(), config.getServerId());
+    heartbeatListener.registerListener((NetworkCache) network);
+
+    // initializes slot manager that will track this server's open slots and handle other server's
+    // reservation requests
     BukkitSlotManager bukkitSlots =
         new BukkitSlotManager(plugin, config.getTotalSlots(), config.getReservationTimeout(),
             config.strictReservations());
@@ -80,9 +100,15 @@ public class ServerClusters implements ServerClustersAPI {
     plugin.getServer().getPluginManager().registerEvents(bukkitSlots, plugin);
     this.slotManager = bukkitSlots;
 
-    network = new NetworkCache(config.getServerTimeout(), config.getServerId());
+    // starts this server's heart beating so the network will know about it
+    BeatingHeart heart = null;
+    try {
+      heart = new BeatingHeart(config, messager, slotManager);
+    } catch (Exception e) {
+      e.printStackTrace();
+    }
+    beatingHeart = heart;
 
-    heartbeats = new HeartbeatMessager(config, network, slotManager);
     relocator = new PlayerRelocator(config, network, slotManager);
     if (config.attemptInstanceConsolidations()) {
       consolidator = new InstanceConsolidator(config, network, slotManager, relocator);
@@ -97,7 +123,6 @@ public class ServerClusters implements ServerClustersAPI {
 
     heartBeating = true;
   }
-
 
   @Override
   public String getServerId() {
@@ -202,7 +227,9 @@ public class ServerClusters implements ServerClustersAPI {
 
     } else {
       heartBeating = false;
-      heartbeats.sendShutdownNotification();
+      if (beatingHeart != null) {
+        beatingHeart.sendShutdownNotification();
+      }
       ret = slotManager.setTotalSlots(0);
     }
 
@@ -219,7 +246,10 @@ public class ServerClusters implements ServerClustersAPI {
   }
 
   void onDisable() {
-    heartbeats.destroy();
+    heartbeatListener.destroy();
+    if (beatingHeart != null) {
+      beatingHeart.destroy();
+    }
     relocator.destroy();
     if (consolidator != null) {
       consolidator.destroy();

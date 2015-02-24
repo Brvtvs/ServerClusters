@@ -7,7 +7,7 @@ import java.util.Map;
 import org.bukkit.configuration.ConfigurationSection;
 import org.bukkit.configuration.file.FileConfiguration;
 
-import io.brutus.minecraft.serverclusters.ServerClustersConfig;
+import io.brutus.minecraft.serverclusters.mcserver.ServerClustersConfig;
 import io.brutus.minecraft.serverclusters.selection.ServerSelectionMode;
 
 /**

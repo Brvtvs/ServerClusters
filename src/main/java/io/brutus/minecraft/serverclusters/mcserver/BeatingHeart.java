@@ -1,38 +1,25 @@
-package io.brutus.minecraft.serverclusters;
+package io.brutus.minecraft.serverclusters.mcserver;
 
-import java.util.Arrays;
-
-import io.brutus.minecraft.pubsub.PubSub;
 import io.brutus.minecraft.serverclusters.bukkit.ServerClusters;
 import io.brutus.minecraft.serverclusters.bukkit.ServerUtil;
 import io.brutus.minecraft.serverclusters.protocol.Heartbeat;
 import io.brutus.minecraft.serverclusters.protocol.ShutdownNotification;
 import io.brutus.networking.pubsubmessager.PubSubMessager;
-import io.brutus.networking.pubsubmessager.Subscriber;
 
 /**
- * A messager that handles sending and receiving heartbeat and shutdown messages. Notifies connected
- * servers of this server's status, and updates the local cache with incoming data about other
- * servers.
+ * A messager that handles sending heartbeat and shutdown messages. Notifies connected servers of
+ * this server's status.
  * <p>
  * Uses a variable "heart rate" (the frequency of outgoing heartbeat messages). When the number of
  * open slots changes often, the heart will beat fast in order to reduce the chances of a connected
  * server having outdated information. When no change is happening, the heart will beat more slowly,
  * just periodically letting connected servers know that this server has not crashed.
- * <p>
- * Does not listen to or consider shutdown notifications. While this messager should be made to send
- * a shutdown notification when a server is shutting down cleanly, this really has no use for
- * listening to or interpreting shutdown messages. As soon as heartbeat messages stop coming from a
- * server, regardless of the reason, this server will know it is no longer available. Shutdown
- * messages are sent to inform peers that <i>do</i> need to know why a server stopped sending
- * heartbeats.
  */
-public class HeartbeatMessager implements Subscriber {
+public class BeatingHeart {
 
   private final String thisServerId;
 
   private final SlotManager slotManager;
-  private final NetworkStatus networkCache;
 
   private final PubSubMessager messager;
   private final byte[] shutdownChannel;
@@ -41,17 +28,16 @@ public class HeartbeatMessager implements Subscriber {
 
   private volatile boolean alive;
 
-  public HeartbeatMessager(ServerClustersConfig config, NetworkStatus networkStatus,
-      SlotManager slotManager) throws IllegalArgumentException {
+  public BeatingHeart(ServerClustersConfig config, PubSubMessager messager, SlotManager slotManager)
+      throws IllegalArgumentException {
 
-    if (config == null || networkStatus == null || slotManager == null) {
+    if (config == null || slotManager == null || messager == null) {
       throw new IllegalArgumentException("params cannot be null");
     }
 
     this.thisServerId = config.getServerId();
 
     this.slotManager = slotManager;
-    this.networkCache = networkStatus;
 
     shutdownChannel = config.getShutdownChannel();
     heartbeatChannel = config.getHeartbeatChannel();
@@ -61,12 +47,17 @@ public class HeartbeatMessager implements Subscriber {
           "the configured heartbeat and shutdown messaging channels cannot be null or empty");
     }
 
-    this.messager = PubSub.getSingleton().getMessager(config.getMessagerInstanceName());
-    if (messager == null) {
-      throw new IllegalStateException("a messager for the configured name could not be found");
-    }
+    this.messager = messager;
 
-    messager.subscribe(heartbeatChannel, this);
+    String ip = ServerUtil.getServerIp();
+    if (ip == null || ip.isEmpty()) {
+      System.out.println("==================================================================");
+      System.out
+          .println("[IMPORTANT!!!] The server's IP address must be manually set in server.properties for "
+              + "ServerClusters to work properly. It is not set, and so ServerClusters will not work.");
+      System.out.println("==================================================================");
+      throw new IllegalArgumentException("server ip must be defined");
+    }
 
     this.baseMessage =
         Heartbeat.createMessage(config.getClusterId(), config.getServerId(),
@@ -109,32 +100,6 @@ public class HeartbeatMessager implements Subscriber {
    */
   public void destroy() {
     sendShutdownNotification();
-    messager.unsubscribe(heartbeatChannel, this);
-  }
-
-  @Override
-  public void onMessage(byte[] channel, byte[] message) {
-    if (Arrays.equals(channel, heartbeatChannel)) {
-      onHeartbeatMessage(message);
-    }
-  }
-
-  private void onHeartbeatMessage(byte[] message) {
-    Heartbeat hb = null;
-    try {
-      hb = Heartbeat.fromBytes(message);
-
-    } catch (Exception e) {
-      System.out.println("Received a message on the heartbeat channel that could not be parsed.");
-      e.printStackTrace();
-      return;
-    }
-
-    if (hb.getServerId().equals(thisServerId)) { // This server's heartbeat; ignores it.
-      return;
-    }
-
-    networkCache.onHeartbeat(hb);
   }
 
   /**

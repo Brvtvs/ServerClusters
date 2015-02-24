@@ -1,6 +1,6 @@
 package io.brutus.minecraft.serverclusters.selection;
 
-import io.brutus.minecraft.serverclusters.cache.ServerStatus;
+import io.brutus.minecraft.serverclusters.networkstatus.ServerStatus;
 
 import java.util.Comparator;
 import java.util.Random;

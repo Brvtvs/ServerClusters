@@ -1,7 +1,7 @@
 package io.brutus.minecraft.serverclusters.bukkit;
 
-import io.brutus.minecraft.serverclusters.NetworkStatus;
-import io.brutus.minecraft.serverclusters.SlotManager;
+import io.brutus.minecraft.serverclusters.mcserver.SlotManager;
+import io.brutus.minecraft.serverclusters.networkstatus.NetworkStatus;
 
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandExecutor;

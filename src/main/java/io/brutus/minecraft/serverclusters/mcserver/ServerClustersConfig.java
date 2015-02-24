@@ -1,4 +1,4 @@
-package io.brutus.minecraft.serverclusters;
+package io.brutus.minecraft.serverclusters.mcserver;
 
 import io.brutus.minecraft.serverclusters.selection.ServerSelectionMode;
 

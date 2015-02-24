@@ -1,4 +1,4 @@
-package io.brutus.minecraft.serverclusters.cache;
+package io.brutus.minecraft.serverclusters.networkstatus;
 
 /**
  * Status of a remote server. Contains information about its cluster, its number of open player
