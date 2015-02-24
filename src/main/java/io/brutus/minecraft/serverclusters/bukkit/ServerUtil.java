@@ -25,6 +25,30 @@ public class ServerUtil {
   private static JavaPlugin plugin;
 
   /**
+   * Gets the IP that this server is bound to.
+   * 
+   * @return This server's IP.
+   */
+  public static String getServerIp() {
+    if (plugin == null) {
+      getPlugin();
+    }
+    return plugin.getServer().getIp();
+  }
+
+  /**
+   * Gets the port that this server is running on.
+   * 
+   * @return This server's port.
+   */
+  public static int getServerPort() {
+    if (plugin == null) {
+      getPlugin();
+    }
+    return plugin.getServer().getPort();
+  }
+
+  /**
    * Sends a player to a connected server.
    * 
    * @param playerId The player to send.

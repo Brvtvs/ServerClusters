@@ -68,7 +68,9 @@ public class HeartbeatMessager implements Subscriber {
 
     messager.subscribe(heartbeatChannel, this);
 
-    this.baseMessage = Heartbeat.createMessage(config.getClusterId(), config.getServerId(), 0);
+    this.baseMessage =
+        Heartbeat.createMessage(config.getClusterId(), config.getServerId(),
+            ServerUtil.getServerIp(), ServerUtil.getServerPort(), 0);
 
     startHeartBeating(config);
   }

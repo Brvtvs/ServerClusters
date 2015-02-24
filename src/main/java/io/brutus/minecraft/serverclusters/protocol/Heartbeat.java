@@ -5,33 +5,39 @@ import java.nio.charset.Charset;
 
 /**
  * Protocol for encoding/decoding heartbeat messages from servers and clusters on the network.
+ * <p>
+ * Serialization is done manually, in large part to efficiently allow editing of the same heartbeat
+ * message over and over again for reuse with minor changes.
  */
 public class Heartbeat {
 
   /*
-   * Protocol: [int clusterIdLength, byte[] clusterId, int serverIdLength, byte[] serverId, int
-   * openSlots]
+   * Protocol: (int clusterIdLength, byte[] clusterId, int serverIdLength, byte[] serverId, int
+   * serverIpLength, byte[] serverIp, int serverPort, int openSlots)
    */
 
   private static final Charset CHARSET = Charset.forName("UTF-8");
   // 3 ints, for number of open slots and 2 id lengths.
-  private static final int BASE_LENGTH = ((Integer.SIZE / 8) * 3);
+  private static final int BASE_LENGTH = ((Integer.SIZE / 8) * 5);
 
   /**
    * Creates a serialized <code>byte</code> array of a heartbeat message.
    * 
    * @param clusterId The id of the cluster of the server the heartbeat is for.
    * @param serverId The id of the server the heartbeat is for.
+   * @param serverIp The ip address of the server the heartbeat is for.
+   * @param serverPort The port of the server the heartbeat is for.
    * @param openSlots The number of open slots the server has.
    * @return The serialized <code>byte</code> array version of the heartbeat. Can be decoded with
    *         {@link #fromBytes(byte[])}.
    * @throws IllegalArgumentException on a <code>null</code> or empty parameter or on a negative
    *         number of open slots.
    */
-  public static byte[] createMessage(String clusterId, String serverId, int openSlots)
-      throws IllegalArgumentException {
-    if (clusterId == null || clusterId.equals("") || serverId == null || serverId.equals("")) {
-      throw new IllegalArgumentException("server and cluster ids cannot be null or empty");
+  public static byte[] createMessage(String clusterId, String serverId, String serverIp,
+      int serverPort, int openSlots) throws IllegalArgumentException {
+    if (clusterId == null || clusterId.equals("") || serverId == null || serverId.equals("")
+        || serverIp == null || serverIp.equals("")) {
+      throw new IllegalArgumentException("strings cannot be null or empty");
     }
     if (openSlots < 0) {
       throw new IllegalArgumentException("open slots cannot be negative");
@@ -39,8 +45,9 @@ public class Heartbeat {
 
     byte[] clusterBytes = clusterId.getBytes(CHARSET);
     byte[] serverBytes = serverId.getBytes(CHARSET);
+    byte[] ipBytes = serverIp.getBytes(CHARSET);
 
-    int messageLength = clusterBytes.length + serverBytes.length + BASE_LENGTH;
+    int messageLength = clusterBytes.length + serverBytes.length + ipBytes.length + BASE_LENGTH;
     ByteBuffer bb = ByteBuffer.allocate(messageLength);
 
     bb.putInt(clusterBytes.length);
@@ -48,6 +55,9 @@ public class Heartbeat {
 
     bb.putInt(serverBytes.length);
     bb.put(serverBytes);
+
+    bb.putInt(ipBytes.length);
+    bb.put(ipBytes);
 
     bb.putInt(openSlots);
 
@@ -114,9 +124,16 @@ public class Heartbeat {
       bb.get(serverBytes);
       String serverId = new String(serverBytes, CHARSET);
 
+      int serverIpLength = bb.getInt();
+      byte[] ipBytes = new byte[serverIpLength];
+      bb.get(ipBytes);
+      String serverIp = new String(ipBytes, CHARSET);
+
+      int serverPort = bb.getInt();
+
       int openSlots = bb.getInt();
 
-      return new Heartbeat(clusterId, serverId, openSlots);
+      return new Heartbeat(clusterId, serverId, serverIp, serverPort, openSlots);
 
     } catch (Exception e) {
       e.printStackTrace();
@@ -126,9 +143,12 @@ public class Heartbeat {
 
   private final String clusterId;
   private final String serverId;
+  private final String serverIp;
+  private final int serverPort;
   private final int openSlots;
 
-  private Heartbeat(String clusterId, String serverId, int openSlots) {
+  private Heartbeat(String clusterId, String serverId, String serverIp, int serverPort,
+      int openSlots) {
     if (clusterId == null || serverId == null || clusterId.equals("") || serverId.equals("")) {
       throw new IllegalArgumentException("ids cannot be null or empty");
     }
@@ -137,6 +157,8 @@ public class Heartbeat {
     }
     this.clusterId = clusterId;
     this.serverId = serverId;
+    this.serverIp = serverIp;
+    this.serverPort = serverPort;
     this.openSlots = openSlots;
   }
 
@@ -156,6 +178,24 @@ public class Heartbeat {
    */
   public String getServerId() {
     return serverId;
+  }
+
+  /**
+   * Gets the IP of the server this heartbeat is for.
+   * 
+   * @return This heartbeat's server ip.
+   */
+  public String getServerIp() {
+    return serverIp;
+  }
+
+  /**
+   * Gets the connection port of the server this heartbeat is for.
+   * 
+   * @return This heartbeat's server port.
+   */
+  public int getServerPort() {
+    return serverPort;
   }
 
   /**
