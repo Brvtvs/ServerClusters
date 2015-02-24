@@ -80,7 +80,7 @@ public class ServerClusters implements ServerClustersAPI {
     plugin.getServer().getPluginManager().registerEvents(bukkitSlots, plugin);
     this.slotManager = bukkitSlots;
 
-    network = new NetworkCache(config.getServerTimeout());
+    network = new NetworkCache(config.getServerTimeout(), config.getServerId());
 
     heartbeats = new HeartbeatMessager(config, network, slotManager);
     relocator = new PlayerRelocator(config, network, slotManager);

@@ -16,7 +16,6 @@ import com.google.common.collect.Multimap;
 import com.google.common.collect.Multimaps;
 
 import io.brutus.minecraft.serverclusters.NetworkStatus;
-import io.brutus.minecraft.serverclusters.bukkit.ServerClusters;
 import io.brutus.minecraft.serverclusters.protocol.Heartbeat;
 import io.brutus.minecraft.serverclusters.selection.ServerSelectionMode;
 
@@ -31,7 +30,18 @@ public class NetworkCache implements NetworkStatus, ExpirationListener<String, S
   private Multimap<String, ServerStatus> clusters; // <cluster id, server statuses within cluster>
   private ExpiringMap<String, ServerStatus> servers; // <server id, server status>
 
-  public NetworkCache(long serverTimeout) throws IllegalArgumentException {
+  private String serverId; // this game server's id, if this is being used on a game server.
+
+  /**
+   * Class constructor.
+   * 
+   * @param serverTimeout How long since the last heartbeat from a server until it should be assumed
+   *        to be down unresponsive, in milliseconds.
+   * @param thisServersId The id of this game server, if this is a game server. If this is not a
+   *        game server that will be sending heartbeats, should be <code>null</code>.
+   * @throws IllegalArgumentException On a timeout that is not positive.
+   */
+  public NetworkCache(long serverTimeout, String thisServersId) throws IllegalArgumentException {
     if (serverTimeout < 1) {
       throw new IllegalArgumentException("server timeout must be positive");
     }
@@ -72,7 +82,7 @@ public class NetworkCache implements NetworkStatus, ExpirationListener<String, S
 
     // if this server's cluster is the target, adds one because this server does not track itself in
     // this cache.
-    if (clusterId.equals(ServerClusters.getSingleton().getClusterId())) {
+    if (clusterId.equals(serverId)) {
       ret++;
     }
 
