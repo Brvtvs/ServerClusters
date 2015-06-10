@@ -1,0 +1,11 @@
+
+# The format that ids should have. Supported variables include %cluster% for the cluster id, 
+# and %counter% for a number unique within that cluster id. For uniqueness, both the cluster
+# id and counter must be present in the id format.
+id-format: "%cluster%-%counter%"
+
+# Persistently saved counters to avoid repeating ids. Do not edit these. 
+# You do not need to add new clusters to this file; they will be added automatically.
+counters:
+    #<cluster-id>: <current per-cluster counter position>
+    cluster-id: 0

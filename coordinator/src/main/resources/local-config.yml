@@ -1,0 +1,26 @@
+# ==============================================================================================
+# Local ServerClustersCoordinator config.
+#
+# Here you can define the basic settings for how this coordinator can interact with the rest of
+# the network.
+#
+# Many of the settings ServerClusters uses are shared across the network. These settings can be
+# found in shared-network-config.yml
+# ==============================================================================================
+
+#
+# NOTE: All text strings are case-sensitive! Ids, channel names, etc. all must be in the correct case!
+#
+
+# The name of the PubSub messaging instance that ServerClusters should use for all of 
+# its communication. See the PubSub config.yml for more details.
+pubsub-messager: 'pubsub1'
+    
+# Settings for how to fulfill requests for the shared network config. These channels must match
+# the channels used for configuration by the other nodes on the network and should not be used for 
+# anything else. 
+config-sharing:
+    # The channel for requesting the configuration.
+    request-channel: 'sc-conf-req'
+    # The channel that the configuration will be sent on.
+    response-channel: 'sc-conf-resp'

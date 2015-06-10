@@ -1,0 +1,5 @@
+main: "${project.groupId}.${project.artifactId}.BungeeMain"
+name: "${project.name}"
+version: "${project.version}"
+author: "Brutus"
+depend: [PubSub]

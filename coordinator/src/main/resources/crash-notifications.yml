@@ -1,0 +1,10 @@
+
+# Crash notification logging to a local file on disk.
+logging:
+    enabled: true
+
+# Crash notifications sent by email to administrators.
+email-notifications: 
+    enabled: true
+    notify:
+    - example@email.com

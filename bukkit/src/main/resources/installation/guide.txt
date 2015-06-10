@@ -1,0 +1,69 @@
+
+This is a guide on how to create a certain type of Minecraft-server cluster with ServerClusters. 
+
+This will not suit all needs. Generally speaking, to use ServerClusters all you NEED to do is this:
+    1. Define your server's connection IP in the server.properties file. Also change the value of max-players to 9999. ServerClusters will manage the real number of open slots.
+    2. Install PubSub and configure it to use an available redis instance for network-wide messaging. Must use the same redis instance(s) as the rest of the network.
+    3. Add ServerClusters.jar to your plugins folder. 
+    4. Start the server and then shut it down after ServerClusters has generated its default configuration.
+    5. Configure the config file at plugins/ServerClusters/config.yml
+    6. Start the server again, check for any errors in the console.
+    7. Either connect to the network coordinator yourself, or else get an administrator to do it for you. Add your cluster and its selection mode (matchmaking, load balancing, etc.) to the network-wide configuration. Reload the network-wide configuration.
+    8. You may also need to add your cluster to any in-game cluster-selection menus or other user interfaces.
+    9. You may also need to edit your server's firewall to allow access from the network's BungeeCord instance(s).
+    
+    
+    
+Now that that is out of the way, here is how you can easily make a wonderful cluster of identical servers! Versus just following the steps above with a server or set of servers, following this guide will improve your cluster in the following ways:
+    - You only have to update, maintain, and patch a single, master version of the server file. All changes will be populated to the copies of the master file when they restart.
+    - You will be able to add and remove servers from your cluster seamlessly by just adding or removing instances that copy from the master server file.
+    - It opens the way for cool features like automatically scaling dynamic server creation/destruction.
+    - It is a proven system that I personally use.
+    
+    
+
+Requirements for one of these awesome clusters:
+    - You cannot store any persistent per-player data in the server file itself. It needs to be stored in a database somewhere else. The entire server file will be deleted and recopied from the master version every restart.
+    - You must be able to follow some basic System Administration instructions to do things like set up ssh trust, use rsync, and editing firewall rules.
+    - ...
+    
+    
+
+Creating a ServerClusters-compatible master server file:
+
+    Edit your server's server.properties file:
+        A. Change the value of server-ip to "COPY_OVER" (without the quotes). The startup script will replace this with the real IP.
+        B. Change the value of max-players to 9999. ServerClusters will manage the real number of open slots. To set a max number of slots, do so in plugin/ServerClusters/config.yml.
+        C. Change the value of server-port to 0. This will make the server use a random open port on startup.
+
+    Edit the startup.sh script located in this installation file.
+        A. Replace "<MASTER FILE LOCATION>" with the rsync-able location of the master server file. This should be a stable host that will not change.
+        B. Edit java command-line arguments as necessary.
+        
+    Make sure all IPs that you use to connect to things like redis instances, databases, etc. are reachable from EVERY machine you might run your servers on. 
+        - Use absolute addresses. Unless you know that every server is going to be on the same machine, you cannot use localhost or 127.0.0.1 to connect to a service
+        - It can be a good practice to use hostnames rather than literal IPs, because hostnames can be more easily changed. For example, use mysql1.yourdomain.com to connect to your database rather than 192.168.1.1. Then, if your database moves, all you have to do is update the subdomain's record, rather than updating the IP in 10 different configs across 5 different server clusters. 
+        - To reduce downtime from hostname changes, make sure your DNS records use a short "Time to Live" (TTL) value. If you don't know how to do this, ask an administrator or look into CloudFlare's free DNS service. 
+        - Use a different subdomain for each logical task, even if multiple point to the same place. Do not combine mysql1.yourdomain.com and redis1.yourdomain.com into machine1.yourdomain.com just because right now they are on the same machine.
+        
+    Make sure that you do not try to store persistent data in your server file.
+        
+   
+
+Installing a instance of your ServerClusters-compatible cluster:
+
+    1. Take the start.sh file and copy it to the directory where you want to install the server instance.
+
+    2. Edit the copied start.sh files and change the variable "SERVER_IP" to its appropriate value.
+    
+    3. Make sure the machine you are running your server on is allowing traffic from all BungeeCord instance(s) on the network.
+    
+    4. Make sure the machine you are running your server on is allowed to access any redis instances, databases, etc. that your server needs to operate.
+    
+    5. Make sure there is ssh trust between the server hosting the master server file and the server copying from the master file. Specifically, the hosting server needs to trust the copying server.
+
+    6. Run the edited start.sh in an otherwise empty directory in which you want the server file to be copied to and run from.
+    
+    7. Restart the server periodically in some way to allow it to recopy from the master version and adopt any recent updates. In some cases it might be impossible to patch like this and you may need to restart all instances at once. However, in many cases smaller changes can be populated to the instances over time as they naturally restart.
+
+

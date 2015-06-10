@@ -1,0 +1,35 @@
+# ==============================================================================================
+# Local ServerClustersBungee config.
+#
+# Here you can define where players will be sent when they first login to this proxy.
+# ==============================================================================================
+
+#
+# NOTE: All text strings are case-sensitive! Ids, channel names, etc. all must be in the correct case!
+#
+
+# The default cluster that players are sent to when they log into this proxy.
+# If set to "", vanilla bungeecord behavior will be used.
+# NOTE: For a cluster to be used as a default, it MUST have strict-reservations OFF. 
+default-cluster: "hub-cluster"
+
+# Per-forced-host cluster destinations for players logging into this proxy.
+# NOTE: For a cluster to be used as a default, it MUST have strict-reservations OFF. 
+forced-hosts:
+    # Format: <forced host, with "." replaced with "_">: <default cluster for the forced host>
+    # If cluster is set to "", vanilla bungeecord behavior will be used.
+    pvp_serverclusters_com: "pvp-cluster"
+
+# ------------------------------------------------------------------------------
+# Settings for how to fetch the central config that is shared across the network.
+# ------------------------------------------------------------------------------
+central-config:
+    # The name of the PubSub messaging instance that ServerClusters should use for all of 
+    # its communication. See the PubSub config.yml for more details.
+    pubsub-messager: 'pubsub1'
+    # The channel for requesting the configuration. These channels must match
+    # the channels used for configuration by the other nodes on the network and
+    # should not be used for anything else.
+    request-channel: 'sc-conf-req'
+    # The channel that the configuration will be sent on.
+    response-channel: 'sc-conf-resp'

@@ -1,0 +1,22 @@
+main: "${project.groupId}.${project.artifactId}.bukkit.BukkitMain"
+name: "${project.name}"
+version: "${project.version}"
+author: "Brutus"
+depend: [PubSub]
+
+commands:
+    serverclustersconfig:
+        permission: serverclusters.commands.config
+        permission-message: Unknown command. Please try again.
+        usage: Invalid usage. Try /<command> reload
+        aliases: [scconfig, scc]
+    networkstatus:
+        permission: serverclusters.commands.networkstatus
+        permission-message: Unknown command. Please try again.
+        aliases: [ns]
+        
+permissions:
+    serverclusters.commands.config:
+        default: op
+    serverclusters.commands.networkstatus:
+        default: op

@@ -1,7 +1,7 @@
 # Eclipse stuff
-/.classpath
-/.project
-/.settings
+*.classpath
+*.project
+*.settings
 
 # netbeans
 /nbproject
@@ -10,8 +10,8 @@
 /build.xml
 
 # maven
-/target
-/dependency-reduced-pom.xml
+*target
+*dependency-reduced-pom.xml
 
 # vim
 .*.sw[a-p]
@@ -30,3 +30,6 @@
 *.ipr
 *.iws
 .idea/
+
+# no need for any kind of jars, really
+*.jar

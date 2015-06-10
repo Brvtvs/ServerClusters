@@ -1,0 +1,67 @@
+# ==============================================================================================
+# Local ServerClusters config.
+#
+# Here you can define settings about this server/cluster as well as how this servers can sync 
+# to the network-wide configuration. 
+#
+# Many of the settings ServerClusters uses are centralized to the network coordinator(s). In
+# order to edit those settings, see those config files.
+# ==============================================================================================
+
+#
+# NOTE: All text strings are case-sensitive! Ids, channel names, etc. all must be in the correct case!
+#
+
+# The name of the cluster that this server is a part of. It is okay if this server is the only 
+# member of its cluster. However, you must select a cluster id no matter what, because cluster 
+# ids are what is used to relocate players on the network. Cluster ids are like a logical 
+# address on the network. You can be the only person living at an address or you can be
+# one of ten, but you need to have an address to get mail.
+cluster-id: 'cluster1'
+
+# The maximum number of players allowed on this server. Other servers will use this in order to 
+# decide when to send players here. This number can be dynamically overwritten via the 
+# ServerClusters API. ServerClusters will enforce this number, but it does not overwrite the 
+# Minecraft server's vanilla number of slots. The vanilla number of slots needs to be edited 
+# separately and should ALWAYS be higher than ServerCluster's max slots. 
+default-player-slots: 25
+
+# Whether to kick players who have not reserved a slot when they try to log in to this server, 
+# even if there are slots freely available. Players sent through the ServerClusters API will 
+# almost always have a reservation. Players sent via other means (ex: /server yourserver) will not.
+strict-reservations: false
+
+# Whether this server should try to periodically consolidate its players to other instances of
+# the same cluster. This can help matchmaking and make up for any weird behavior where players 
+# get stuck on an almost empty instance when they could theoretically be in a match.
+#
+# This ONLY works when this server's cluster is using matchmaking for server selection. Otherwise,
+# this setting is ignored.
+# 
+# How it works: This server will periodically look at its cluster, and see if there are any 
+# instances that have FEWER open slots than this server, but still enough for ALL of this 
+# server's players. If those requirements are met, this server will attempt to get a reservation
+# for all of its players on that instance, consolidating the two groups of players into one, 
+# bigger match.
+# For example, if server1 has 5/10 players and server2 has 3/10 players, server2 would send all
+# of its 3 players to server1 so they are not waiting around without enough players to start the
+# match. If server2 did not do this, then players just joining the cluster would go to server1
+# and get into a match faster than the players in server2, even though those in server2 have
+# been waiting longer.
+attempt-instance-consolidations: false
+
+
+# ------------------------------------------------------------------------------
+# Settings for how to fetch the central config that is shared across the network.
+# ------------------------------------------------------------------------------
+central-config:
+    # The name of the PubSub messaging instance that ServerClusters should use for all of 
+    # its communication. See the PubSub config.yml for more details.
+    pubsub-messager: 'pubsub1'
+    # The channel for requesting the configuration. These channels must match
+    # the channels used for configuration by the other nodes on the network and
+    # should not be used for anything else.
+    request-channel: 'sc-conf-req'
+    # The channel that the configuration will be sent on.
+    response-channel: 'sc-conf-resp'
+

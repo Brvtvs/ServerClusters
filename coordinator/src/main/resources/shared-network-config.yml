@@ -1,0 +1,112 @@
+# ==============================================================================================
+# Network-wide shared ServerClusters configuration.
+# 
+# These settings are shared across the network. After editing this file, use "/scconfig reload" 
+# in the coordinator's console to make the changes actually take effect. If you do not do this, 
+# any changes to this file will do nothing until the coordinator restarts.
+#
+# Note that not all changes can or will take effect immediately, even if other servers on the
+# network are notified of them. Some things, like messaging channels, just cannot be edited on 
+# the fly and may require the servers to restart before the changes take effect.
+#
+# Adding and removing clusters to/from this configuration IS GUARANTEED to update as soon as 
+# the nodes on the network receive the new version of the configuration (shortly after this 
+# is reloaded), without having to restart.
+# ==============================================================================================
+
+#
+# NOTE: All text strings are case-sensitive! Ids, channel names, etc. all must be in the correct case!
+#
+
+# -------------------------------------------------------
+# Configuration for how to treat clusters on the network.
+# 
+# Can be dynamically reloaded without other nodes on
+# the network needing to restart. ("/scconfig reload" 
+# in the console after saving your changes)
+# -------------------------------------------------------
+clusters:
+    # How to treat clusters of connected servers when sending players to them.
+    #
+    # Currently supported:
+    # 1. 'matchmaking' - puts the players in the server with the least number of open slots, but still 
+    #     enough for the number of players being sent. This causes servers to fill up as fast as 
+    #     possible, which is a way to accomplish efficient matchmaking.
+    # 2. 'loadbalancing' - puts the players in the server with the most number of open slots. This 
+    #     causes each server to be used roughly equally, spreading the load throughout the cluster. 
+    # 3. 'random' - puts the players in any random server in the cluster that has enough slots. 
+    #
+    # Any cluster that is not configured will default to 'random' mode if players are sent to it from
+    # this server.
+    server-selection:
+    
+        # <cluster id>: '<selection mode>'
+        cluster1: 'matchmaking'
+        cluster2: 'loadbalancing'
+        cluster3: 'random'
+
+# -----------------------------------------
+# Configuration for cross-server messaging.
+# -----------------------------------------
+# How connected servers interact with each other. (required for all ServerClusters functions)
+# This plugin relies on the PubSub plugin library for messaging.
+messaging:
+    
+    # The channels on which to publish and subscribe to messages. Each channel should be unique 
+    # within the messaging instance being used, and the channels should be used for NOTHING else. 
+    # For example, every connected server should use the same heartbeat channel, but they should not 
+    # use the same channel for both heartbeats and reservation responses. If two servers' channels are not the 
+    # same, or if they overlap with another function's channel, this plugin will not work at all.
+    # (Channel names will be encoded to UTF-8 bytes) Remember, they are case sensitive.
+    channels:
+        id-requests: 'sc-id-req'
+        id-responses: 'sc-id-resp'
+        heartbeat: 'sc-hb'
+        shutdown: 'sc-sh'
+        reservation-requests: 'sc-rez-req'
+        reservation-responses: 'sc-rez-resp'
+        
+        
+# ------------------------------------------------
+# Configuration for various advanced time options.
+# ------------------------------------------------
+# ADVANCED! Do not edit these unless you know what you are doing!
+# The default settings are generally reasonable.
+timings: 
+
+    # Servers' heart rates (how often heartbeats are sent) are not constant. They will increase when the 
+    # locally-set number of open slots changes. When changes are happening, more heartbeats are sent to 
+    # reduce the chance of connected servers having outdated information. The more changes there are, 
+    # the faster the heart rate will be. However, even when there is no change, the server will still 
+    # send heartbeats periodically to let other servers know it is still responsive and available.
+    heart-rate:
+    
+        # The MAXIMUM amount of time, in millseconds, between outgoing heartbeats. In order to let other 
+        # servers know this server is okay, heartbeat messages need to be sent even if no change has 
+        # taken place on this server. This is the amount of time in between outgoing heartbeats when 
+        # the number of open slots is not changing.
+        min-rate: 5000
+        
+        # The MINIMUM amount of time, in milliseconds, between outgoing heartbeats. Heartbeat messages 
+        # will not be sent more often than every <this number> of milliseconds. A lower number means 
+        # heartbeat messages are sent more often when players log into/out of this server. This means 
+        # connected server's data about this server is more updated more often and is more accurate, 
+        # but a lower number also will increase traffic and possibly strain this server and the
+        # network's communications.
+        max-rate: 500
+    
+    # The amount of time, in milliseconds, to wait in between incoming heartbeats from a connected 
+    # server before assuming that it is offline/unresponsive. This should obviously be more than other 
+    # servers' minimum heart rate, or else this server will think other servers are unresponsive for 
+    # no reason. Something like 2-4x their minimum heart rate makes sense, which allows one or two 
+    # messages to be missed somehow before the connected server is considered unresponsive.
+    server-timeout: 15000
+    
+    # How long, in milliseconds, after sending a reservation-request should the requesting server 
+    # give up? This applies both to requests sent to a specific server, and those sent looking for
+    # the server of a given player.
+    reservation-response-timeout: 2000
+
+    # After granting players a reservation, how long should this server wait (in milliseconds) before
+    # revoking that reservation and reopening the reserved slot for other players?
+    reservation-timeout: 5000
