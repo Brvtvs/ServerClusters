@@ -1,56 +1,56 @@
 <project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
-	xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
-	<modelVersion>4.0.0</modelVersion>
-	<parent>
-		<groupId>io.brutus.minecraft.serverclusters</groupId>
-		<artifactId>parent</artifactId>
-		<version>2.0.0-SNAPSHOT</version>
-	</parent>
-	<artifactId>common</artifactId>
-	<packaging>jar</packaging>
-	
+    xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+    <parent>
+        <groupId>io.brutus.minecraft.serverclusters</groupId>
+        <artifactId>parent</artifactId>
+        <version>2.0.0-SNAPSHOT</version>
+    </parent>
+    <artifactId>common</artifactId>
+    <packaging>jar</packaging>
+    
     <name>ServerClustersCommon</name>
     <description>Common protocol and features for ServerClusters nodes.</description>
-	
-	<dependencies>
+    
+    <dependencies>
         <dependency>
             <groupId>javax.mail</groupId>
             <artifactId>mail</artifactId>
             <version>1.4.4</version>
             <scope>compile</scope>
         </dependency>
-		<dependency>
-			<groupId>net.jodah</groupId>
-			<artifactId>expiringmap</artifactId>
-			<version>0.3.1</version>
-		</dependency>
-	</dependencies>
+        <dependency>
+            <groupId>net.jodah</groupId>
+            <artifactId>expiringmap</artifactId>
+            <version>0.3.1</version>
+        </dependency>
+    </dependencies>
 
-	<build>
-		<plugins>
-			<plugin>
-				<groupId>org.apache.maven.plugins</groupId>
-				<artifactId>maven-shade-plugin</artifactId>
-				<version>2.3</version>
-				<configuration>
-					<minimizeJar>true</minimizeJar>
-					<relocations>
-						<relocation>
-							<pattern>net.jodah</pattern>
-							<shadedPattern>io.brutus.minecraft.serverclusters.shaded.net.jodah</shadedPattern>
-						</relocation>
-					</relocations>
-				</configuration>
-				<executions>
-					<execution>
-						<phase>package</phase>
-						<goals>
-							<goal>shade</goal>
-						</goals>
-					</execution>
-				</executions>
-			</plugin>
-		</plugins>
-	</build>
+    <build>
+        <plugins>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-shade-plugin</artifactId>
+                <version>2.3</version>
+                <configuration>
+                    <minimizeJar>true</minimizeJar>
+                    <relocations>
+                        <relocation>
+                            <pattern>net.jodah</pattern>
+                            <shadedPattern>io.brutus.minecraft.serverclusters.shaded.net.jodah</shadedPattern>
+                        </relocation>
+                    </relocations>
+                </configuration>
+                <executions>
+                    <execution>
+                        <phase>package</phase>
+                        <goals>
+                            <goal>shade</goal>
+                        </goals>
+                    </execution>
+                </executions>
+            </plugin>
+        </plugins>
+    </build>
 
 </project>
