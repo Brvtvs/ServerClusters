@@ -177,6 +177,10 @@ public class SharedConfigurationManager {
 
   /**
    * Hides subscriber methods so they cannot be messed with.
+   * <p>
+   * Listens for configuration messages until destroyed, even those it did not request. Incorporates
+   * any updates it gets, such as when a config is pushed from being updated or the coordinator
+   * fulfilling another client's request.
    */
   private class ConfigSubscriber implements Subscriber {
 
